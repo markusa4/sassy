@@ -17,7 +17,7 @@ A definition for a sassy_hook is given below:
 
 Note that the hook has four parameters, `int n`, `const int* p`, `int nsupp`, `const int* supp`. The meaning is as follows. The integer `n` gives the size of the domain of the symmetry, or in simple terms, the number of vertices of the graph. The array `p` is an array of length `n`. The described symmetry maps `i` to `p[i]`.
 
-Crucially, `nsupp` and `supp` tell us which `i`'s are interesting at all: whenever `p[i] = i`, we do not iterate over `i`. To achieve this, `nsupp` first gives us the number of vertices where `p[i] != i`. Next, `supp[j]` for `0 <= j < nsupp` gives us the j-th vertex where `p[i] != i`. Iterating over `supp` yields all the points of the automorphism that are not the identity. Note that in many applications, not iterating over `p` in its entirety is crucial for decent performance.
+Crucially, `nsupp` and `supp` tell us which `i`'s are interesting at all: whenever `p[i] = i`, we do not iterate over `i`. To achieve this, `nsupp` first gives us the number of vertices where `p[i] != i`. Next, `supp[j]` for `0 <= j < nsupp` gives us the j-th vertex where `p[supp[j]] != supp[j]`. Iterating over `supp` yields all the points of the automorphism that are not the identity. Note that in many applications, not iterating over `p` in its entirety is crucial for decent performance.
 
 An example is below:
 
