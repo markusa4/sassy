@@ -1,11 +1,14 @@
 # the sassy preprocessor for symmetry detection
 The sassy preprocessor is designed to shrink large, sparse graphs. The idea is that before giving the graph to an off-the-shelf symmetry detection tool (such as bliss, dejavu, nauty, saucy, Traces), the graph is instead given to the preprocessor. The preprocessor shrinks the graph, in turn hopefully speeding up the subsequent solver.
 
-Some technicalities apply, though: the graph format of sassy must be used as the input graph (`sgraph`). The graph format follows precisely the format of nauty / Traces, which is described in great detail [here](https://pallini.di.uniroma1.it/Guide.html). 
-
-Also, a hook for automorphisms must be given to sassy (a `sassy_hook`), and automorphisms of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation, but a special hook must be given to the backend solver (see the example below for bliss).
+Some technicalities apply, though: a hook for automorphisms must be given to sassy (a `sassy_hook`), and automorphisms of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation, but a special hook must be given to the backend solver (see the example below for bliss). The graph format used is the graph format of nauty / Traces (further described below).
 
 At this point, the preprocessor comes in the form of a header-only library.
+
+## The graphs
+The input graph format of sassy is `sgraph`. Note that the graph format follows precisely the format of nauty / Traces, which is described in great detail [here](https://pallini.di.uniroma1.it/Guide.html).
+
+The graph does not include a coloring, instead, an integer array `col` is given in addition to the graph. The meaning is that vertex `v` is mapped to color `col[v]`. 
 
 ## The hook
 A definition for a sassy_hook is given below:
