@@ -9,6 +9,7 @@ At this point, the preprocessor comes in the form of a header-only library.
 
 ## The hook
 A definition for a sassy_hook is given below:
+
     typedef void sassy_hook(int, const int *, int, const int *);
 
 Note that the hook has four parameters, `int n`, `const int* p`, `int nsupp`, `const int* supp`. The meaning is as follows. The integer `n` gives the size of the domain of the symmetry, or in simple terms, the number of vertices of the graph. The array `p` is an array of length `n`. The described symmetry maps `i` to `p[i]`.
