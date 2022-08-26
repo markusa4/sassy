@@ -1,14 +1,23 @@
 # the sassy preprocessor for symmetry detection
 The sassy preprocessor is designed to shrink large, sparse graphs. The idea is that before giving the graph to an off-the-shelf symmetry detection tool (such as bliss, dejavu, nauty, saucy, Traces), the graph is instead given to the preprocessor. The preprocessor shrinks the graph, in turn hopefully speeding up the subsequent solver.
 
-Some technicalities apply, though: a hook for automorphisms must be given to sassy (a `sassy_hook`), and automorphisms of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation, but a special hook must be given to the backend solver (see the example below for bliss). The graph format used is the graph format of nauty / Traces (further described below).
+Some technicalities apply, though: a hook for automorphisms must be given to sassy (a `sassy_hook`), and automorphisms of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation, but a special hook must be given to the backend solver (see the example below for bliss). The graph format used is descriebd further below.
 
-At this point, the preprocessor comes in the form of a header-only library.
+At this point, the preprocessor comes in the form of a header-only library and uses some features of C++17.
 
 ## The graphs
-The input graph format of sassy is `sgraph`. Note that the graph format follows precisely the format of nauty / Traces, which is described in great detail [here](https://pallini.di.uniroma1.it/Guide.html).
+We provide an interface for the construction of vertex-colored graphs in the class `static_graph`. The graph must first be initialized (either using the respective constructor or using `initialize_graph`). For the initialization, the final number of vertices or edges must be given. The number of vertices or edges can not be changed. Then, using `add_vertex` and `add_edge`, the precise number of defined vertices and edges must be added. The `add_vertex(color, deg)` function requests a color and a degree. Both can not be changed later (unless the internal graph is changed manually). Note that the function always returns the numbers `0..n-1`, in order, as the indices of the vertices. The `add_edge(v1, v2)` function adds an undirected edge from v1 to v2. It is always required that v1 < v2 holds, to prevent the accidental addition of hyper-edges. An example creating a path of length 3 is given below.
 
-The graph does not include a coloring, instead, an integer array `col` is given in addition to the graph. The meaning is that vertex `v` is mapped to color `col[v]`. 
+    #include "sassy/preprocessor.h"
+    sassy::static_graph g;
+    g.initialize_graph(3, 2);
+    const int v1 = g.add_vertex(0, 1);
+    const int v2 = g.add_vertex(0, 2);
+    const int v3 = g.add_vertex(0, 1);
+    g.add_edge(v1, v2);
+    g.add_edge(v2, v3);
+
+The internal graph format of sassy is `sgraph`. It follows the format of nauty / Traces closely, which is described in great detail [here](https://pallini.di.uniroma1.it/Guide.html). The graph does not include a coloring, instead, an integer array `col` is given in addition to the graph. The meaning is that vertex `v` is mapped to color `col[v]`. 
 
 ## The hook
 A definition for a sassy_hook is given below:
@@ -33,23 +42,22 @@ An example is below:
 
     #include "bliss/graph.hh"
     #include "sassy/preprocessor.h"
-    #include "sassy/converters/bliss_converter.h"
+    #include "sassy/tools/bliss_converter.h"
     
     ...
     
-    sassy::sgraph g;
-    int* col = nullptr;
+    sassy::static_graph g;
     
     // graph must be parsed into g here!
     
-    // lets preprocess now...
+    // lets preprocess...
     sassy::preprocessor p;
     // hook is a sassy_hook callback function
-    p.reduce(&g, col, &hook);
+    p.reduce(&g, &hook);
     
-    // ...and then we give the graph to bliss: first conver the graph
+    // ...and then we give the graph to bliss: first, convert the graph
     bliss::Graph bliss_graph;
-    convert_sassy_to_bliss(&g, col, &bliss_graph);
+    convert_sassy_to_bliss(&g, &bliss_graph);
     
     // then call bliss
     bliss::Stats bliss_stat;
@@ -57,5 +65,86 @@ An example is below:
     
     // done!
     
+Note that the `bliss_hook` uses the field `p.saved_hook` to call the user-defined `sassy_hook` (i.e., in the example above `hook`). This also holds for all other solvers described below.
+    
+    
+## Example Usage with nauty
+
+    #include "sassy/preprocessor.h"
+    #include "sassy/tools/nauty_converter.h"
+    #include "nauty/naugroup.h"
+    
+    ...
+    
+    sassy::static_graph g;
+    
+    // graph must be parsed into g here!
+    
+    // lets preprocess...
+    sassy::preprocessor p;
+    // hook is a sassy_hook callback function
+    p.reduce(&g, &hook);
+    
+    // ...and then we give the graph to bliss: first, convert the graph
+    sparsegraph nauty_graph;
+    DYNALLSTAT(int, lab, lab_sz);
+    DYNALLSTAT(int, ptn, ptn_sz);
+    convert_sassy_to_nauty(&g, &nauty_graph, &lab, &lab_sz, &ptn, &ptn_sz);
+    
+    // then call nauty
+    statsblk stats;
+    DYNALLSTAT(int, orbits, orbits_sz);
+    DYNALLOC1(int,  orbits, orbits_sz, nauty_graph.nv, "malloc");
+    static DEFAULTOPTIONS_SPARSEGRAPH(options);
+    options.schreier = true;
+    options.defaultptn = false;
+    options.userautomproc = sassy::preprocessor::nauty_hook;
+    if(nauty_graph.nv > 0) {
+        sparsenauty(&nauty_graph, lab, ptn, orbits, &options, &stats, NULL);
+    }
+    
+    // done!
+    
+Note that the `nauty_hook` uses the static field `preprocessor::save_preprocessor` to access `p` again, which in turn accesses `p.saved_hook`. If multi-threading is used in this configuration, `preprocessor::save_preprocessor` should be changed to `thread_local`. This also holds for all solvers described below.
+    
+
+
+## Example Usage with Traces
+
+    #include "sassy/preprocessor.h"
+    #include "sassy/tools/traces_converter.h"
+    #include "nauty/traces.h"
+    
+    ...
+    
+    sassy::static_graph g;
+    
+    // graph must be parsed into g here!
+    
+    // lets preprocess...
+    sassy::preprocessor p;
+    // hook is a sassy_hook callback function
+    p.reduce(&g, &hook);
+    
+    // ...and then we give the graph to bliss: first, convert the graph
+    sparsegraph traces_graph;
+    DYNALLSTAT(int, lab, lab_sz);
+    DYNALLSTAT(int, ptn, ptn_sz);
+    convert_sassy_to_traces(&g, &traces_graph, &lab, &lab_sz, &ptn, &ptn_sz);
+    
+    // then call nauty
+    statsblk stats;
+    DYNALLSTAT(int, orbits, orbits_sz);
+    DYNALLOC1(int,  orbits, orbits_sz, traces_graph.nv, "malloc");
+    static DEFAULTOPTIONS_TRACES(options);
+    options.schreier = true;
+    options.defaultptn = false;
+    options.userautomproc = sassy::preprocessor::traces_hook;
+    if(nauty_graph.nv > 0) {
+        Traces(&traces_graph, lab, ptn, orbits, &options, &stats, NULL);
+    }
+    
+    // done!
+
 ## Work in progress
 Note that this project is still being actively developed. I am happy to take suggestions, bug reports, ...

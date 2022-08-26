@@ -1,19 +1,18 @@
 #ifndef DEJAVU_SELECTOR_H
 #define DEJAVU_SELECTOR_H
 
-
 #include "refinement.h"
 #include "coloring.h"
 #include "sgraph.h"
 #include "configuration.h"
+
 namespace sassy {
     enum selector_type {
         SELECTOR_FIRST, SELECTOR_LARGEST, SELECTOR_SMALLEST, SELECTOR_TRACES, SELECTOR_RANDOM
     };
 
-    template<class vertex_t>
     struct strategy {
-        bijection<vertex_t> *leaf = nullptr;
+        bijection<int> *leaf = nullptr;
         invariant *I = nullptr;
         selector_type cell_selector_type = SELECTOR_FIRST;
         int cell_selector_seed = 0;
@@ -28,19 +27,19 @@ namespace sassy {
             }
         }
 
-        strategy(bijection<vertex_t> *leaf, invariant *I, selector_type cell_selector_type, int seed) {
+        strategy(bijection<int> *leaf, invariant *I, selector_type cell_selector_type, int seed) {
             this->leaf = leaf;
             this->I = I;
             this->cell_selector_type = cell_selector_type;
             this->cell_selector_seed = seed;
         }
 
-        void replace(strategy<vertex_t> *s) {
+        void replace(strategy *s) {
             if (init) {
                 delete leaf;
                 delete I;
             }
-            leaf = new bijection<vertex_t>();
+            leaf = new bijection<int>();
             I = new invariant();
             init = true;
 
@@ -53,7 +52,6 @@ namespace sassy {
         }
     };
 
-    template<class vertex_t, class degree_t, class edge_t>
     class selector {
         int skipstart = 0;
         int hint = -1;
@@ -64,7 +62,7 @@ namespace sassy {
         int init = false;
 
     public:
-        int seeded_select_color(coloring<vertex_t> *c, int seed) {
+        int seeded_select_color(coloring *c, int seed) {
             std::vector<int> cells;
             for (int i = 0; i < c->ptn_sz;) {
                 if (c->ptn[i] > 0) {
@@ -80,7 +78,7 @@ namespace sassy {
             }
         }
 
-        int select_color_largest(coloring<vertex_t> *c) {
+        int select_color_largest(coloring *c) {
             if (!init) {
                 largest_cache.initialize(c->lab_sz);
                 non_trivial_list.initialize(c->lab_sz);
@@ -123,7 +121,7 @@ namespace sassy {
             return largest_cell;
         }
 
-        int select_color_smallest(coloring<vertex_t> *c) {
+        int select_color_smallest(coloring *c) {
             int smallest_cell = -1;
             int smallest_cell_sz = c->lab_sz + 1;
             bool only_trivial = true;
@@ -148,7 +146,7 @@ namespace sassy {
             return smallest_cell;
         }
 
-        int select_color_first(coloring<vertex_t> *c) {
+        int select_color_first(coloring *c) {
             int first_cell = -1;
 
             for (int i = skipstart; i < c->ptn_sz;) {
@@ -170,7 +168,7 @@ namespace sassy {
         }
 
         int
-        select_color_dynamic(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c, strategy<vertex_t> *s) {
+        select_color_dynamic(sgraph *g, coloring *c, strategy *s) {
             if (c->cells == g->v_size)
                 return -1;
             switch (s->cell_selector_type) {

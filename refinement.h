@@ -71,16 +71,11 @@ namespace sassy {
     class work_list_t {
     public:
         void initialize(int size) {
+            if(init)
+                delete[] arr;
             arr = new T[size];
             arr_sz = size;
             init = true;
-            cur_pos = 0;
-        }
-
-        void initialize_from_array(T *arr, int size) {
-            this->arr = arr;
-            arr_sz = size;
-            init = false;
             cur_pos = 0;
         }
 
@@ -226,8 +221,6 @@ namespace sassy {
     public:
         void initialize(int size);
 
-        void initialize_from_array(int *arr, int size);
-
         void push(int val);
 
         int pop();
@@ -245,37 +238,9 @@ namespace sassy {
         int sz;
     };
 
-// work set using less space than mark set, but more expensive reset operation
-    class work_set {
-    public:
-        void initialize(int size);
-
-        void set(int index);
-
-        bool get(int index);
-
-        void reset();
-
-        ~work_set();
-
-        void reset_hard();
-
-        void set_nr(int index);
-
-        void unset(int index);
-
-        void reset_soft();
-
-    private:
-        work_queue reset_queue;
-        bool init = false;
-        bool *s;
-        int sz;
-    };
-
 // work set with arbitrary type
     template<class T>
-    class alignas(16) work_set_t {
+    class work_set_t {
     public:
         void initialize(int size) {
             s = new T[size];
@@ -284,16 +249,6 @@ namespace sassy {
             memset(s, -1, size * sizeof(T));
 
             init = true;
-            sz = size;
-        }
-
-        void initialize_from_array(T *arr, int size) {
-            s = arr;
-            reset_queue.initialize_from_array(arr + size, size);
-
-            memset(s, -1, size * sizeof(T));
-
-            init = false;
             sz = size;
         }
 
@@ -345,11 +300,9 @@ namespace sassy {
     };
 
     typedef work_set_t<int> work_set_int;
-    typedef work_set_t<char> work_set_char;
 
 
 // worklist implementation for color refinement
-    template<class vertex_t>
     class cell_worklist {
     public:
         void initialize(int domain_size) {
@@ -372,7 +325,7 @@ namespace sassy {
             return 0;
         }
 
-        int next_cell(work_set_int *queue_pointer, coloring<vertex_t> *c) {
+        int next_cell(work_set_int *queue_pointer, coloring *c) {
             // look at first 12 positions and pick the (first) smallest cell within these entries
             int sm_j = cur_pos - 1;
             for (int j = cur_pos - 1; j >= 0 && ((cur_pos - j) <= 12); --j) {
@@ -393,7 +346,7 @@ namespace sassy {
             return sm_col;
         }
 
-        int next_cell(work_set_int *queue_pointer, coloring<vertex_t> *c, work_list_t<int> *singleton_hint) {
+        int next_cell(work_set_int *queue_pointer, coloring *c, work_list_t<int> *singleton_hint) {
             // use singleton_hint
             int sm_j = -1;
             while (!singleton_hint->empty()) {
@@ -460,28 +413,26 @@ namespace sassy {
     };
 
 // refinement manager, preserving the workspace between refinements
-    template<class vertex_t, class degree_t, class edge_t>
     class refinement {
     private:
-        configstruct* config;
-        refinement();
+        configstruct* config = nullptr;
     public:
+        refinement()=delete;
         refinement(configstruct* config) {
             this->config = config;
         }
 
         // color refinement
         // includes several options for using invariants, blueprints and k-deviation
-        bool refine_coloring(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c, invariant *I,
+        bool refine_coloring(sgraph *g, coloring *c, invariant *I,
                              int init_color_class, strategy_metrics *m, int cell_early, int individualize_early,
-                             std::vector<vertex_t> *early_individualized, mark_set *touched_color,
+                             std::vector<int> *early_individualized, mark_set *touched_color,
                              work_list *touched_color_list) {
             bool comp = true;
             singleton_hint.reset();
             int individualize_pos = individualize_early;
             assure_initialized(g);
-            int deviation_expander = (cell_early == g->v_size) ? config->CONFIG_IR_EXPAND_DEVIATION : 0;
-            if (config->CONFIG_IR_FORCE_EXPAND_DEVIATION) deviation_expander = config->CONFIG_IR_EXPAND_DEVIATION;
+            int deviation_expander = 0;
 
             cell_todo.reset(&queue_pointer);
 
@@ -670,7 +621,7 @@ namespace sassy {
         }
 
         // individualize a vertex in a coloring
-        int individualize_vertex(coloring<vertex_t> *c, int v) {
+        int individualize_vertex(coloring *c, int v) {
             const int color = c->vertex_to_col[v];
             const int pos = c->vertex_to_lab[v];
 
@@ -695,7 +646,7 @@ namespace sassy {
 
         // color refinement that does not produce an isomorphism-invariant partitioning, but uses more optimization
         // techniques -- meant to be used as the first refinement in automorphism computation
-        bool refine_coloring_first(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_coloring_first(sgraph *g, coloring *c,
                                    int init_color_class) {
             assure_initialized(g);
             singleton_hint.reset();
@@ -811,46 +762,7 @@ namespace sassy {
         }
 
         // certify an automorphism on a graph
-        bool certify_automorphism(sgraph_t<vertex_t, degree_t, edge_t> *g, bijection<vertex_t> *p) {
-            assert(p->map_sz == g->v_size);
-            int i, found;
-
-            assure_initialized(g);
-
-            for (i = 0; i < g->v_size; ++i) {
-                const int image_i = p->map_vertex(i);
-                if (image_i == i)
-                    continue;
-                if (g->d[i] != g->d[image_i]) // degrees must be equal
-                    return false;
-
-                scratch_set.reset();
-                // automorphism must preserve neighbours
-                found = 0;
-                for (int j = g->v[i]; j < g->v[i] + g->d[i]; ++j) {
-                    const int vertex_j = g->e[j];
-                    const int image_j = p->map_vertex(vertex_j);
-                    scratch_set.set(image_j);
-                    found += 1;
-                }
-                for (int j = g->v[image_i]; j < g->v[image_i] + g->d[image_i]; ++j) {
-                    const int vertex_j = g->e[j];
-                    if (!scratch_set.get(vertex_j)) {
-                        return false;
-                    }
-                    scratch_set.unset(vertex_j);
-                    found -= 1;
-                }
-                if (found != 0) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        // certify an automorphism on a graph
-        bool certify_automorphism(sgraph_t<vertex_t, degree_t, edge_t> *g, const int *p) {
+        bool certify_automorphism(sgraph *g, const int *p) {
             int i, found;
 
             assure_initialized(g);
@@ -888,7 +800,7 @@ namespace sassy {
         }
 
         // certify an automorphism on a graph
-        bool certify_automorphism(sgraph_t<vertex_t, degree_t, edge_t> *g, const int *colmap, const int *p) {
+        bool certify_automorphism(sgraph *g, const int *colmap, const int *p) {
             int i, found;
 
             assure_initialized(g);
@@ -928,7 +840,7 @@ namespace sassy {
         }
 
         // certify an automorphism on a graph, sparse
-        bool certify_automorphism_sparse(const sgraph_t<vertex_t, degree_t, edge_t> *g, const int *colmap, const int *p,
+        bool certify_automorphism_sparse(const sgraph *g, const int *colmap, const int *p,
                                          int supp, const int *supp_arr) {
             int i, found;
 
@@ -977,7 +889,7 @@ namespace sassy {
 
         // certify an automorphism on a graph, sparse, report on which vertex failed
         std::pair<bool, int>
-        certify_automorphism_sparse_report_fail(const sgraph_t<vertex_t, degree_t, edge_t> *g, const int *colmap,
+        certify_automorphism_sparse_report_fail(const sgraph *g, const int *colmap,
                                                 const int *p, int supp, const int *supp_arr) {
             int i, found;
 
@@ -1023,7 +935,7 @@ namespace sassy {
         }
 
         // certify an automorphism, for a single vertex
-        bool check_single_failure(const sgraph_t<vertex_t, degree_t, edge_t> *g, const int *colmap, const int *p,
+        bool check_single_failure(const sgraph *g, const int *colmap, const int *p,
                                   int failure) {
             int i, found;
 
@@ -1065,80 +977,6 @@ namespace sassy {
             return true;
         }
 
-        // certify an automorphism on a graph
-        bool certify_automorphism_iso(sgraph_t<vertex_t, degree_t, edge_t> *g, bijection<vertex_t> *p) {
-            assert(p->map_sz == g->v_size);
-            int i, found;
-
-            for (i = 0; i < g->v_size; ++i) {
-                const int image_i = p->map_vertex(i);
-                if (g->d[i] != g->d[image_i]) // degrees must be equal
-                    return false;
-
-                scratch_set.reset();
-                // automorphism must preserve neighbours
-                found = 0;
-                for (int j = g->v[i]; j < g->v[i] + g->d[i]; ++j) {
-                    const int vertex_j = g->e[j];
-                    const int image_j = p->map_vertex(vertex_j);
-                    scratch_set.set(image_j);
-                    found += 1;
-                }
-                for (int j = g->v[image_i]; j < g->v[image_i] + g->d[image_i]; ++j) {
-                    const int vertex_j = g->e[j];
-                    if (!scratch_set.get(vertex_j)) {
-                        return false;
-                    }
-                    scratch_set.unset(vertex_j);
-                    found -= 1;
-                }
-                if (found != 0) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        // certify a graph isomorphism
-        bool certify_isomorphism(sgraph_t<vertex_t, degree_t, edge_t> *g1, sgraph_t<vertex_t, degree_t, edge_t> *g2,
-                                 bijection<vertex_t> *p) {
-            if (g1 == g2) {
-                PRINT("g1 == g2, no need to test isomorphism");
-            }
-            assert(p->map_sz == g1->v_size);
-            int i, found;
-
-            for (i = 0; i < g1->v_size; ++i) {
-                const int image_i = p->map_vertex(i);
-                if (g1->d[i] != g2->d[image_i]) // degrees must be equal
-                    return false;
-
-                scratch_set.reset();
-                // isomorphism must preserve neighbours
-                found = 0;
-                for (int j = g1->v[i]; j < g1->v[i] + g1->d[i]; ++j) {
-                    const int vertex_j = g1->e[j];
-                    const int image_j = p->map_vertex(vertex_j);
-                    scratch_set.set(image_j);
-                    found += 1;
-                }
-                for (int j = g2->v[image_i]; j < g2->v[image_i] + g2->d[image_i]; ++j) {
-                    const int vertex_j = g2->e[j];
-                    if (!scratch_set.get(vertex_j)) {
-                        return false;
-                    }
-                    scratch_set.unset(vertex_j);
-                    found -= 1;
-                }
-                if (found != 0) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         ~refinement() {
             if (initialized)
                 delete[] workspace_int;
@@ -1147,21 +985,21 @@ namespace sassy {
     private:
         bool initialized = false;
         work_set_int queue_pointer;
-        cell_worklist<vertex_t> cell_todo;
+        cell_worklist cell_todo;
         mark_set scratch_set;
-        work_list_t<vertex_t> vertex_worklist;
-        work_set_t<vertex_t> color_vertices_considered;
-        work_set_t<vertex_t> neighbours; // degree type instead?
-        work_set_t<vertex_t> neighbour_sizes;
-        //work_list_t<vertex_t>  singletons;
-        work_list_t<vertex_t> singleton_hint;
-        work_list_t<vertex_t> old_color_classes;
+        work_list_t<int> vertex_worklist;
+        work_set_t<int> color_vertices_considered;
+        work_set_t<int> neighbours; // degree type instead?
+        work_set_t<int> neighbour_sizes;
+        //work_list_t<int>  singletons;
+        work_list_t<int> singleton_hint;
+        work_list_t<int> old_color_classes;
         work_list_pair_bool color_class_splits;
 
-        vertex_t *scratch;
+        int *scratch;
         int *workspace_int;
 
-        void assure_initialized(const sgraph_t<vertex_t, degree_t, edge_t> *g) {
+        void assure_initialized(const sgraph *g) {
             if (!initialized) {
                 const int n = g->v_size;
 
@@ -1177,27 +1015,27 @@ namespace sassy {
                 queue_pointer.initialize(n);
                 color_vertices_considered.initialize(n);
 
-                scratch = (vertex_t *) workspace_int;
+                scratch = (int *) workspace_int;
                 scratch_set.initialize_from_array(workspace_int + n, n);
 
                 color_class_splits.initialize(n);
                 cell_todo.initialize(n * 2);
 
-                memset(scratch, 0, n * sizeof(vertex_t));
+                memset(scratch, 0, n * sizeof(int));
                 initialized = true;
             }
         }
 
-        bool refine_color_class_sparse(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_sparse(sgraph *g, coloring *c,
                                        int color_class, int class_size,
                                        work_list_pair_bool *color_class_split_worklist, invariant *I) {
             // for all vertices of the color class...
             bool comp, mark_as_largest;
             int i, j, cc, end_cc, largest_color_class_size, acc_in, singleton_inv1, singleton_inv2, acc;
-            vertex_t *vertex_to_lab = c->vertex_to_lab;
-            vertex_t *lab = c->lab;
-            vertex_t *ptn = c->ptn;
-            vertex_t *vertex_to_col = c->vertex_to_col;
+            int *vertex_to_lab = c->vertex_to_lab;
+            int *lab = c->lab;
+            int *ptn = c->ptn;
+            int *vertex_to_col = c->vertex_to_col;
 
             cc = color_class; // iterate over color class
             comp = true;
@@ -1277,17 +1115,17 @@ namespace sassy {
                 // enrich neighbour_sizes to accumulative counting array
                 acc = 0;
                 while (!vertex_worklist.empty()) {
-                    const int i = vertex_worklist.pop_back();
-                    const int val = neighbour_sizes.get(i) + 1;
+                    const int k = vertex_worklist.pop_back();
+                    const int val = neighbour_sizes.get(k) + 1;
                     if (val >= 1) {
-                        neighbour_sizes.set(i, val + acc);
+                        neighbour_sizes.set(k, val + acc);
                         acc += val;
-                        const int __col = _col + _col_sz - (neighbour_sizes.get(i));
-                        const int v_degree = i;
-                        comp = I->write_top_and_compare(__col + v_degree * g->v_size) && comp;
+                        const int _ncol = _col + _col_sz - (neighbour_sizes.get(k));
+                        const int v_degree = k;
+                        comp = I->write_top_and_compare(_ncol + v_degree * g->v_size) && comp;
                         comp = I->write_top_and_compare(g->v_size * 7 + val + 1) && comp;
-                        if (__col != _col)
-                            ptn[__col] = -1;
+                        if (_ncol != _col)
+                            ptn[_ncol] = -1;
                     }
                 }
 
@@ -1371,7 +1209,7 @@ namespace sassy {
             return comp;
         }
 
-        bool refine_color_class_dense(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_dense(sgraph *g, coloring *c,
                                       int color_class, int class_size,
                                       work_list_pair_bool *color_class_split_worklist, invariant *I) {
             bool comp;
@@ -1467,22 +1305,22 @@ namespace sassy {
                 // enrich neighbour_sizes to accumulative counting array
                 acc = 0;
                 while (!vertex_worklist.empty()) {
-                    const int i = vertex_worklist.pop_back();
-                    const int val = neighbour_sizes.get(i) + 1;
+                    const int k = vertex_worklist.pop_back();
+                    const int val = neighbour_sizes.get(k) + 1;
                     if (val >= 1) {
-                        neighbour_sizes.set(i, val + acc);
+                        neighbour_sizes.set(k, val + acc);
                         acc += val;
-                        const int _col = col + col_sz - (neighbour_sizes.get(i));
+                        const int _col = col + col_sz - (neighbour_sizes.get(k));
                         c->ptn[_col] = -1; // this is val - 1, actually...
 
-                        const int v_degree = i;
+                        const int v_degree = k;
                         comp = I->write_top_and_compare(_col + g->v_size * v_degree) && comp;
                         comp = I->write_top_and_compare(_col + val + 1) && comp;
                     }
                 }
 
                 // copy cell for rearranging
-                memcpy(scratch, c->lab + col, col_sz * sizeof(vertex_t));
+                memcpy(scratch, c->lab + col, col_sz * sizeof(int));
                 //vertex_worklist.cur_pos = col_sz;
                 pos = col_sz;
 
@@ -1522,7 +1360,7 @@ namespace sassy {
             return comp;
         }
 
-        bool refine_color_class_dense_dense(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_dense_dense(sgraph *g, coloring *c,
                                             int color_class, int class_size,
                                             work_list_pair_bool *color_class_split_worklist, invariant *I) {
             bool comp;
@@ -1595,15 +1433,15 @@ namespace sassy {
                 // enrich neighbour_sizes to accumulative counting array
                 acc = 0;
                 while (!vertex_worklist.empty()) {
-                    const int i = vertex_worklist.pop_back();
-                    const int val = neighbour_sizes.get(i) + 1;
+                    const int k = vertex_worklist.pop_back();
+                    const int val = neighbour_sizes.get(k) + 1;
                     if (val >= 1) {
-                        neighbour_sizes.set(i, val + acc);
+                        neighbour_sizes.set(k, val + acc);
                         acc += val;
-                        const int _col = col + col_sz - (neighbour_sizes.get(i));
+                        const int _col = col + col_sz - (neighbour_sizes.get(k));
                         c->ptn[_col] = -1; // this is val - 1, actually...
 
-                        const int v_degree = i;
+                        const int v_degree = k;
                         comp = I->write_top_and_compare(-g->v_size * 5 - _col) && comp;
                         comp = I->write_top_and_compare(_col + v_degree) && comp;
                         comp = I->write_top_and_compare(_col + val + 1) && comp;
@@ -1613,7 +1451,7 @@ namespace sassy {
                 vertex_worklist.reset();
 
                 // copy cell for rearranging
-                memcpy(vertex_worklist.get_array(), c->lab + col, col_sz * sizeof(vertex_t));
+                memcpy(vertex_worklist.get_array(), c->lab + col, col_sz * sizeof(int));
                 vertex_worklist.cur_pos = col_sz;
 
                 // determine colors and rearrange
@@ -1653,7 +1491,7 @@ namespace sassy {
             return comp;
         }
 
-        bool refine_color_class_singleton(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_singleton(sgraph *g, coloring *c,
                                           int color_class, int class_size,
                                           work_list_pair_bool *color_class_split_worklist, invariant *I) {
             bool comp;
@@ -1779,7 +1617,7 @@ namespace sassy {
             return comp;
         }
 
-        bool refine_color_class_singleton_first(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_singleton_first(sgraph *g, coloring *c,
                                                 int color_class, int class_size,
                                                 work_list_pair_bool *color_class_split_worklist) {
             bool comp;
@@ -1865,7 +1703,7 @@ namespace sassy {
             return comp;
         }
 
-        bool refine_color_class_dense_first(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_dense_first(sgraph *g, coloring *c,
                                             int color_class, int class_size,
                                             work_list_pair_bool *color_class_split_worklist) {
             int i, cc, acc, largest_color_class_size, pos;
@@ -1932,18 +1770,18 @@ namespace sassy {
                 // enrich neighbour_sizes to accumulative counting array
                 acc = 0;
                 while (!vertex_worklist.empty()) {
-                    const int i = vertex_worklist.pop_back();
-                    const int val = neighbour_sizes.get(i) + 1;
+                    const int k = vertex_worklist.pop_back();
+                    const int val = neighbour_sizes.get(k) + 1;
                     if (val >= 1) {
-                        neighbour_sizes.set(i, val + acc);
+                        neighbour_sizes.set(k, val + acc);
                         acc += val;
-                        const int _col = col + col_sz - (neighbour_sizes.get(i));
+                        const int _col = col + col_sz - (neighbour_sizes.get(k));
                         c->ptn[_col] = -1; // this is val - 1, actually...
                     }
                 }
 
                 // copy cell for rearranging
-                memcpy(scratch, c->lab + col, col_sz * sizeof(vertex_t));
+                memcpy(scratch, c->lab + col, col_sz * sizeof(int));
                 pos = col_sz;
 
                 // determine colors and rearrange
@@ -1982,7 +1820,7 @@ namespace sassy {
             return true;
         }
 
-        bool refine_color_class_dense_dense_first(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_dense_dense_first(sgraph *g, coloring *c,
                                                   int color_class, int class_size,
                                                   work_list_pair_bool *color_class_split_worklist) {
             // for all vertices of the color class...
@@ -2040,18 +1878,18 @@ namespace sassy {
                 // enrich neighbour_sizes to accumulative counting array
                 acc = 0;
                 while (!vertex_worklist.empty()) {
-                    const int i = vertex_worklist.pop_back();
-                    const int val = neighbour_sizes.get(i) + 1;
+                    const int k = vertex_worklist.pop_back();
+                    const int val = neighbour_sizes.get(k) + 1;
                     if (val >= 1) {
-                        neighbour_sizes.set(i, val + acc);
+                        neighbour_sizes.set(k, val + acc);
                         acc += val;
-                        const int _col = col + col_sz - (neighbour_sizes.get(i));
+                        const int _col = col + col_sz - (neighbour_sizes.get(k));
                         c->ptn[_col] = -1;
                     }
                 }
 
                 // copy cell for rearranging
-                memcpy(scratch, c->lab + col, col_sz * sizeof(vertex_t));
+                memcpy(scratch, c->lab + col, col_sz * sizeof(int));
                 pos = col_sz;
 
                 // determine colors and rearrange
@@ -2090,7 +1928,7 @@ namespace sassy {
             return true;
         }
 
-        bool refine_color_class_sparse_first(sgraph_t<vertex_t, degree_t, edge_t> *g, coloring<vertex_t> *c,
+        bool refine_color_class_sparse_first(sgraph *g, coloring *c,
                                              int color_class, int class_size,
                                              work_list_pair_bool *color_class_split_worklist) {
             bool comp;
@@ -2229,71 +2067,6 @@ namespace sassy {
         }
     };
 
-    void work_set::initialize(int size) {
-        s = new bool[size];
-        //s.reserve(size);
-
-        //for(int i = 0; i < size; ++i)
-        //    s.push_back(false);
-        memset(s, false, size * sizeof(bool));
-
-        reset_queue.initialize(size);
-        init = true;
-        sz = size;
-    }
-
-    void work_set::set(int index) {
-        assert(init);
-        assert(index >= 0);
-        assert(index < sz);
-        if (!s[index]) {
-            s[index] = true;
-            reset_queue.push(index);
-        }
-    }
-
-    void work_set::unset(int index) {
-        assert(init);
-        assert(index >= 0);
-        assert(index < sz);
-        s[index] = false;
-    }
-
-    void work_set::set_nr(int index) {
-        s[index] = true;
-    }
-
-    bool work_set::get(int index) {
-        assert(init);
-        assert(index >= 0);
-        assert(index < sz);
-        return s[index];
-    }
-
-    void work_set::reset() {
-        while (!reset_queue.empty()) {
-            const int index = reset_queue.pop();
-            assert(init);
-            assert(index >= 0);
-            assert(index < sz);
-            s[index] = false;
-        }
-    }
-
-    void work_set::reset_hard() {
-        reset_queue.pos = 0;
-        memset(s, false, sz * sizeof(bool));
-    }
-
-    work_set::~work_set() {
-        if (init)
-            delete[] s;
-    }
-
-    void work_set::reset_soft() {
-        reset_queue.reset();
-    }
-
     void work_queue::initialize(int size) {
         assert(!init);
         sz = size;
@@ -2331,14 +2104,6 @@ namespace sassy {
         pos = 0;
     }
 
-    void work_queue::initialize_from_array(int *arr, int size) {
-        assert(!init);
-        sz = size;
-        pos = 0;
-        queue = arr;
-        init = false;
-    }
-
 // ring queue for pairs of integers
     class ring_pair {
         std::pair<int, int> *arr;
@@ -2349,18 +2114,13 @@ namespace sassy {
 
     public:
         void initialize(int size) {
+            if(init)
+                delete[] arr;
             arr = new std::pair<int, int>[size];
             arr_sz = size;
             back_pos = 0;
             front_pos = 0;
             init = true;
-        }
-
-        void initialize_from_array(std::pair<int, int> *p, int size) {
-            arr = p;
-            arr_sz = size;
-            back_pos = 0;
-            front_pos = 0;
         }
 
         void push_back(std::pair<int, int> value) {

@@ -1,6 +1,8 @@
 #ifndef SASSY_BLISS_CONVERTER_H
 #define SASSY_BLISS_CONVERTER_H
 
+// requires "bliss/graph.hh" and "sassy/graph.h" to be loaded
+
 static void convert_sassy_to_bliss(sassy::sgraph* sassy_graph, int* sassy_col, bliss::Graph* bliss_graph) {
     std::vector<int> sassy_v_to_bliss_v;
     sassy_v_to_bliss_v.reserve(sassy_graph->v_size);
@@ -18,5 +20,10 @@ static void convert_sassy_to_bliss(sassy::sgraph* sassy_graph, int* sassy_col, b
         }
     }
 }
+
+static void convert_sassy_to_bliss(sassy::static_graph* sassy_graph, bliss::Graph* bliss_graph) {
+    convert_sassy_to_bliss(sassy_graph->get_sgraph(), sassy_graph->get_coloring(), bliss_graph);
+}
+
 
 #endif //SASSY_BLISS_CONVERTER_H

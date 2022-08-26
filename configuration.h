@@ -13,12 +13,10 @@ namespace sassy {
     typedef void sassy_hook(int, const int *, int, const int *);
 
     struct configstruct {
-        bool CONFIG_PRINT = true;
+        bool CONFIG_PRINT = false;
         bool CONFIG_IR_FULL_INVARIANT = false; // uses a complete invariant and no certification if enabled
         bool CONFIG_IR_IDLE_SKIP = true;  // blueprints
         bool CONFIG_IR_INDIVIDUALIZE_EARLY = false; // experimental feature, based on an idea by Adolfo Piperno
-        int CONFIG_IR_EXPAND_DEVIATION = 5;   // additional cells processed after deviation is detected
-        bool CONFIG_IR_FORCE_EXPAND_DEVIATION = false;
         bool CONFIG_PREP_DEACT_PROBE = false; // preprocessor: no probing
         bool CONFIG_PREP_DEACT_DEG01 = false; // preprocessor: no degree 0,1 processing
         bool CONFIG_PREP_DEACT_DEG2 = false; // preprocessor: no degree 2   processing
