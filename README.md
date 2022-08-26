@@ -17,7 +17,7 @@ We provide an interface for the construction of vertex-colored graphs in the cla
     g.add_edge(v1, v2);
     g.add_edge(v2, v3);
 
-The internal graph format of sassy is `sgraph`. It follows the format of nauty / Traces closely, which is described in great detail [here](https://pallini.di.uniroma1.it/Guide.html). The graph does not include a coloring, instead, an integer array `col` is given in addition to the graph. The meaning is that vertex `v` is mapped to color `col[v]`. 
+The internal graph format of sassy is `sgraph`. It follows the format of nauty / Traces closely, which is described in great detail [here](https://pallini.di.uniroma1.it/Guide.html). The `sgraph` format does not include a coloring, instead, an integer array `col` is given in addition to the graph. The meaning is that vertex `v` is mapped to color `col[v]`. 
 
 ## The hook
 A definition for a sassy_hook is given below:
