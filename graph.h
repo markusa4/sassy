@@ -17,7 +17,7 @@ namespace sassy {
     class static_graph {
     private:
         sgraph   g;
-        int*     c;
+        int*     c = nullptr;
         int*     edge_cnt;
         int num_vertices_defined  = 0;
         int num_edges_defined     = 0;
@@ -39,6 +39,13 @@ namespace sassy {
 
         static_graph() {
             initialized = false;
+        }
+
+        ~static_graph() {
+            if(initialized && c != nullptr)
+                delete[] c;
+            if(initialized && edge_cnt != nullptr)
+                delete[] edge_cnt;
         }
 
         void initialize_graph(const unsigned int nv, const unsigned int ne) {

@@ -1,7 +1,7 @@
 # the sassy preprocessor for symmetry detection
-The sassy preprocessor is designed to shrink large, sparse graphs. The idea is that before giving the graph to an off-the-shelf symmetry detection tool (such as bliss, dejavu, nauty, saucy, Traces), the graph is instead given to the preprocessor. The preprocessor shrinks the graph, in turn hopefully speeding up the subsequent solver.
+The sassy preprocessor is designed to shrink large, sparse graphs. Before giving a graph to an off-the-shelf symmetry detection solver (such as [bliss](http://www.tcs.hut.fi/Software/bliss/), [dejavu](https://www.mathematik.tu-darmstadt.de/dejavu), [nauty](https://pallini.di.uniroma1.it/), [saucy](http://vlsicad.eecs.umich.edu/BK/SAUCY/), [Traces](https://pallini.di.uniroma1.it/)), the graph is instead first handed to the preprocessor. The preprocessor shrinks the graph, in turn hopefully speeding up the subsequent solver.
 
-Some technicalities apply, though: a hook for automorphisms must be given to sassy (a `sassy_hook`), and automorphisms of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation by providing a special hook that is given to the backend solver (see the examples below). The graph format used by the preprocessor is described below as well.
+Some technicalities apply, though: a hook for symmetries must be given to sassy (a `sassy_hook`), and symmetries of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation by providing a special hook that is in turn given to the backend solver (see the examples below). The graph format used by the preprocessor is described below as well.
 
 At this point, the preprocessor comes in the form of a header-only library and uses some features of C++17. To achieve good performance the library should be compiled with an adequate optimization level enabled (we use `-O3` for benchmarks), as well as assertions disabled (i.e., by using the flag `NDEBUG`).
 
@@ -31,7 +31,7 @@ The definition for `sassy_hook` is as follows:
 
 Note that a hook has four parameters, `int n`, `const int* p`, `int nsupp`, `const int* supp`. The meaning is as follows. The integer `n` gives the size of the domain of the symmetry, or in simple terms, the number of vertices of the graph. The array `p` is an array of length `n`. The described symmetry maps `i` to `p[i]`.
 
-Crucially, `nsupp` and `supp` tell us which `i`'s are interesting at all: whenever `p[i] = i`, we do not want to iterate over `i`. To achieve this, `nsupp` gives us the number of vertices where `p[i] != i`. Next, `supp[j]` for `0 <= j < nsupp` gives us the j-th vertex where `p[supp[j]] != supp[j]`. Iterating over `supp` yields all the points of the automorphism that are not the identity. Note that in many applications, not iterating over `p` in its entirety is crucial for decent performance.
+Crucially, `nsupp` and `supp` tell us which `i`'s are interesting at all: whenever `p[i] = i`, we do not want to iterate over `i`. To enable this, the array `supp` tells us all the points where `p[i] != i`. In particular, `supp[j]` for `0 <= j < nsupp` gives us the j-th vertex where `p[supp[j]] != supp[j]`. Note that `nsupp` contains the size of `supp`.  In many applications, reading symmetries in this manner is crucial for adequate performance.
 
 An example is below:
 
@@ -90,7 +90,7 @@ Note that the `bliss_hook` uses the field `p.saved_hook` to call the user-define
     // hook is a sassy_hook callback function
     p.reduce(&g, &hook);
     
-    // ...and then we give the graph to bliss: first, convert the graph
+    // ...and then we give the graph to nauty: first, convert the graph
     sparsegraph nauty_graph;
     DYNALLSTAT(int, lab, lab_sz);
     DYNALLSTAT(int, ptn, ptn_sz);
@@ -107,10 +107,15 @@ Note that the `bliss_hook` uses the field `p.saved_hook` to call the user-define
     if(nauty_graph.nv > 0) {
         sparsenauty(&nauty_graph, lab, ptn, orbits, &options, &stats, NULL);
     }
+
+    // clean up
+    DYNFREE(lab, lab_sz);
+    DYNFREE(ptn, ptn_sz);
+    SG_FREE(nauty_graph);
     
     // done!
     
-Note that the `nauty_hook` uses the static field `preprocessor::save_preprocessor` to access `p` again, which in turn accesses `p.saved_hook`. If multi-threading is used in this configuration, `preprocessor::save_preprocessor` should be changed to `thread_local`. This also holds for all solvers described below.
+Note that the `nauty_hook` uses the static field `preprocessor::save_preprocessor` to access `p` again, which in turn accesses `p.saved_hook`. If multi-threading is used in this configuration, `preprocessor::save_preprocessor` should be changed to `thread_local`. This also holds for Traces.
     
 
 
@@ -131,13 +136,13 @@ Note that the `nauty_hook` uses the static field `preprocessor::save_preprocesso
     // hook is a sassy_hook callback function
     p.reduce(&g, &hook);
     
-    // ...and then we give the graph to bliss: first, convert the graph
+    // ...and then we give the graph to Traces: first, convert the graph
     sparsegraph traces_graph;
     DYNALLSTAT(int, lab, lab_sz);
     DYNALLSTAT(int, ptn, ptn_sz);
     convert_sassy_to_traces(&g, &traces_graph, &lab, &lab_sz, &ptn, &ptn_sz);
     
-    // then call nauty
+    // then call Traces
     statsblk stats;
     DYNALLSTAT(int, orbits, orbits_sz);
     DYNALLOC1(int,  orbits, orbits_sz, traces_graph.nv, "malloc");
@@ -148,8 +153,56 @@ Note that the `nauty_hook` uses the static field `preprocessor::save_preprocesso
     if(nauty_graph.nv > 0) {
         Traces(&traces_graph, lab, ptn, orbits, &options, &stats, NULL);
     }
+
+    // clean up
+    DYNFREE(lab, lab_sz);
+    DYNFREE(ptn, ptn_sz);
+    SG_FREE(nauty_graph);
     
     // done!
+
+## Example using saucy
+
+    #include "sassy/preprocessor.h"
+    #include "sassy/tools/traces_converter.h"
+    #include "saucy/saucy.h"
+    
+    ...
+    
+    sassy::static_graph g;
+    
+    // graph must be parsed into g here!
+    
+    // lets preprocess...
+    sassy::preprocessor p;
+    // hook is a sassy_hook callback function
+    p.reduce(&g, &hook);
+    
+    // ...and then we give the graph to saucy: first, convert the graph
+    saucy_graph _saucy_graph;
+    int* colors = nullptr;
+    convert_sassy_to_saucy(&g, &_saucy_graph, &colors);
+
+    // then call saucy
+    struct saucy_stats stats;
+    if(g.v_size > 0) {
+        struct saucy *s = saucy_alloc(_saucy_graph.n);
+        saucy_search(s, &_saucy_graph, 0, colors, &sassy::preprocessor::saucy_hook, &p, &stats);
+        saucy_free(s);
+    }
+
+    // clean up
+    delete[] colors;
+    delete[] _saucy_graph.edg;
+    delete[] _saucy_graph.adj;
+    
+    // done!
+
+I want to mention that I have also seen a saucy version that uses a slightly different graph format. In this version, `saucy_graph` contains another field `colors`. In order to translate to this format, we just need to additionally set `_saucy_graph.colors = colors`, and remove `colors` from the parameter list of `saucy_search`:
+
+    ...
+    saucy_search(s, &_saucy_graph, 0, &sassy::preprocessor::saucy_hook, &p, &stats);
+    ...
 
 ## Work in progress
 Note that this project is still being actively developed. I am happy to take suggestions, bug reports, ...

@@ -4221,7 +4221,12 @@ namespace sassy {
             preprocessor::save_preprocessor = this;
         }
 
-        // saucy usage specific: (TODO!)
+        // saucy usage specific:
+        static inline int saucy_hook(int n, const int* aut, int nsupp, int* supp, void* user_param) {
+            auto p = (preprocessor *) user_param;
+            p->pre_consumer(n, (int *) aut, nsupp, supp, p->saved_hook);
+            return true;
+        }
 
         // dejavu usage specific: (TODO!)
     };

@@ -1,6 +1,8 @@
 #ifndef SASSY_NAUTY_CONVERTER_H
 #define SASSY_NAUTY_CONVERTER_H
 
+#include <algorithm>
+
 struct colorComparator {
     colorComparator(const int* colmap) : colmap(colmap) {}
     const int* colmap;
