@@ -3,7 +3,7 @@
 
 #include "nauty_converter.h"
 
-static void convert_sassy_to_nauty(sassy::sgraph *g, int* colmap, sparsegraph* sg, int** lab, size_t* lab_sz, int** ptn, size_t* ptn_sz) {
+static void convert_sassy_to_traces(sassy::sgraph *g, int* colmap, sparsegraph* sg, int** lab, size_t* lab_sz, int** ptn, size_t* ptn_sz) {
     SG_INIT(*sg);
     SG_ALLOC(*sg, g->v_size, g->e_size, "malloc");
     sg->nv = g->v_size;
@@ -27,6 +27,11 @@ static void convert_sassy_to_nauty(sassy::sgraph *g, int* colmap, sparsegraph* s
     for (int i = 0; i < g->e_size; ++i) {
         sg->e[i] = g->e[i];
     }
+}
+
+
+static void convert_sassy_to_traces(sassy::static_graph *sassy_graph, sparsegraph* sg, int** lab, size_t* lab_sz, int** ptn, size_t* ptn_sz) {
+    convert_sassy_to_traces(sassy_graph->get_sgraph(), sassy_graph->get_coloring(), sg, lab, lab_sz, ptn, ptn_sz);
 }
 
 

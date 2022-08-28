@@ -58,5 +58,9 @@ static void convert_sassy_to_nauty(sassy::sgraph *g, int* colmap, sparsegraph* s
     }
 }
 
+static void convert_sassy_to_nauty(sassy::static_graph *sassy_graph, sparsegraph* sg, int** lab, size_t* lab_sz, int** ptn, size_t* ptn_sz) {
+    convert_sassy_to_nauty(sassy_graph->get_sgraph(), sassy_graph->get_coloring(), sg, lab, lab_sz, ptn, ptn_sz);
+}
+
 
 #endif //SASSY_NAUTY_CONVERTER_H

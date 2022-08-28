@@ -1,16 +1,19 @@
 # the sassy preprocessor for symmetry detection
 The sassy preprocessor is designed to shrink large, sparse graphs. The idea is that before giving the graph to an off-the-shelf symmetry detection tool (such as bliss, dejavu, nauty, saucy, Traces), the graph is instead given to the preprocessor. The preprocessor shrinks the graph, in turn hopefully speeding up the subsequent solver.
 
-Some technicalities apply, though: a hook for automorphisms must be given to sassy (a `sassy_hook`), and automorphisms of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation, but a special hook must be given to the backend solver (see the example below for bliss). The graph format used is descriebd further below.
+Some technicalities apply, though: a hook for automorphisms must be given to sassy (a `sassy_hook`), and automorphisms of the reduced graph must be translated back to the original graph. The preprocessor does the reverse translation, by providing a special hook that is given to the backend solver (see the examples below). The graph format used is described further below.
 
-At this point, the preprocessor comes in the form of a header-only library and uses some features of C++17.
+At this point, the preprocessor comes in the form of a header-only library and uses some features of C++17. To achieve good performance the library should be compiled with an adequate optimization level enabled (we usually compile with `-O3`), as well as assertions disabled (i.e., by using the flag `NDEBUG`).
 
 ## The graphs
 We provide an interface for the construction of vertex-colored graphs in the class `static_graph`. The graph must first be initialized (either using the respective constructor or using `initialize_graph`). For the initialization, the final number of vertices or edges must be given. The number of vertices or edges can not be changed. Then, using `add_vertex` and `add_edge`, the precise number of defined vertices and edges must be added. The `add_vertex(color, deg)` function requests a color and a degree. Both can not be changed later (unless the internal graph is changed manually). Note that the function always returns the numbers `0..n-1`, in order, as the indices of the vertices. The `add_edge(v1, v2)` function adds an undirected edge from v1 to v2. It is always required that v1 < v2 holds, to prevent the accidental addition of hyper-edges. An example creating a path of length 3 is given below.
 
     #include "sassy/preprocessor.h"
+
+    ...
+
     sassy::static_graph g;
-    g.initialize_graph(3, 2);
+    g.initialize_graph(3, 2); // 3 vertices, 2 edges
     const int v1 = g.add_vertex(0, 1);
     const int v2 = g.add_vertex(0, 2);
     const int v3 = g.add_vertex(0, 1);
@@ -26,7 +29,7 @@ A definition for a sassy_hook is given below:
 
 Note that the hook has four parameters, `int n`, `const int* p`, `int nsupp`, `const int* supp`. The meaning is as follows. The integer `n` gives the size of the domain of the symmetry, or in simple terms, the number of vertices of the graph. The array `p` is an array of length `n`. The described symmetry maps `i` to `p[i]`.
 
-Crucially, `nsupp` and `supp` tell us which `i`'s are interesting at all: whenever `p[i] = i`, we do not iterate over `i`. To achieve this, `nsupp` first gives us the number of vertices where `p[i] != i`. Next, `supp[j]` for `0 <= j < nsupp` gives us the j-th vertex where `p[supp[j]] != supp[j]`. Iterating over `supp` yields all the points of the automorphism that are not the identity. Note that in many applications, not iterating over `p` in its entirety is crucial for decent performance.
+Crucially, `nsupp` and `supp` tell us which `i`'s are interesting at all: whenever `p[i] = i`, we do not want to iterate over `i`. To achieve this, `nsupp` gives us the number of vertices where `p[i] != i`. Next, `supp[j]` for `0 <= j < nsupp` gives us the j-th vertex where `p[supp[j]] != supp[j]`. Iterating over `supp` yields all the points of the automorphism that are not the identity. Note that in many applications, not iterating over `p` in its entirety is crucial for decent performance.
 
 An example is below:
 
@@ -38,7 +41,7 @@ An example is below:
     }
 
 
-## Example Usage with bliss
+## Example using bliss
 
     #include "bliss/graph.hh"
     #include "sassy/preprocessor.h"
@@ -68,7 +71,7 @@ An example is below:
 Note that the `bliss_hook` uses the field `p.saved_hook` to call the user-defined `sassy_hook` (i.e., in the example above `hook`). This also holds for all other solvers described below.
     
     
-## Example Usage with nauty
+## Example using nauty
 
     #include "sassy/preprocessor.h"
     #include "sassy/tools/nauty_converter.h"
@@ -109,7 +112,7 @@ Note that the `nauty_hook` uses the static field `preprocessor::save_preprocesso
     
 
 
-## Example Usage with Traces
+## Example using Traces
 
     #include "sassy/preprocessor.h"
     #include "sassy/tools/traces_converter.h"

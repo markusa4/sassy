@@ -1,11 +1,11 @@
 #ifndef DEJAVU_REFINEMENT_H
 #define DEJAVU_REFINEMENT_H
 
+#include "utility.h"
 #include "coloring.h"
 #include "sgraph.h"
 #include "invariant.h"
 #include "configuration.h"
-#include "utility.h"
 #include <list>
 #include <iostream>
 #include <cstring>

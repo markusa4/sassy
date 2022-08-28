@@ -1,6 +1,7 @@
 #ifndef DEJAVU_SASSY_H
 #define DEJAVU_SASSY_H
 
+#include "utility.h"
 #include "refinement.h"
 #include "graph.h"
 #include "selector.h"
@@ -38,6 +39,7 @@ namespace sassy {
     private:
         inline static preprocessor* save_preprocessor;
         sassy_hook *saved_hook;
+        configstruct config_default;
 
         mark_set del;
         mark_set del_e;
@@ -4005,7 +4007,6 @@ namespace sassy {
         void reduce(sgraph *g, int *colmap, sassy_hook hook, std::vector<preop> *schedule = nullptr) {
             std::vector<preop> default_schedule = {deg01, qcedgeflip, deg2ma, deg2ue, probe2qc, deg2ma, probeqc, redloop};
             //std::vector<preop> alt_schedule = {deg01, qcedgeflip, deg2ma, deg2ue, probe2qc, probeflat, deg2ma};
-            configstruct config_default;
             if(config == nullptr) {
                 config = &config_default;
             }

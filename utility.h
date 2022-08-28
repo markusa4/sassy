@@ -5,7 +5,6 @@
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
-#include "configuration.h"
 #include <fstream>
 #include <set>
 #include <cstring>
@@ -14,6 +13,8 @@
 
 #ifndef DEJAVU_UTILITY_H
 #define DEJAVU_UTILITY_H
+
+namespace sassy {
 
 #define INV_MARK_ENDREF    (INT32_MAX - 5)
 #define INV_MARK_STARTCELL (INT32_MAX - 6)
@@ -27,8 +28,6 @@
 #define MASH5(i) ((i + 1) * (23524361 - i * 3))
 
 #define PRINT(str) {if(config->CONFIG_PRINT) {std::cout << str << std::endl;}}
-
-namespace sassy {
 
 // metrics used to compare strategies
     struct strategy_metrics {
