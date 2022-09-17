@@ -219,17 +219,42 @@ namespace sassy {
 // queue with fixed size limitation
     class work_queue {
     public:
-        void initialize(int size);
+        void initialize(int size) {
+            assert(!init);
+            sz = size;
+            pos = 0;
+            queue = new int[size];
+            init = true;
+        }
 
-        void push(int val);
+        void push(int val) {
+            //assert(init);
+            assert(pos != sz);
+            queue[pos] = val;
+            pos++;
+        }
 
-        int pop();
+        int pop() {
+            //assert(init);
+            assert(pos > 0);
+            pos--;
+            return queue[pos];
+        }
 
-        void reset();
+        bool empty() {
+            //assert(init);
+            return (pos == 0);
+        }
 
-        bool empty();
+        ~work_queue() {
+            if (init) {
+                delete[] queue;
+            }
+        }
 
-        ~work_queue();
+        void reset() {
+            pos = 0;
+        }
 
         int *queue;
         int pos;
@@ -2066,43 +2091,6 @@ namespace sassy {
             return comp;
         }
     };
-
-    void work_queue::initialize(int size) {
-        assert(!init);
-        sz = size;
-        pos = 0;
-        queue = new int[size];
-        init = true;
-    }
-
-    void work_queue::push(int val) {
-        //assert(init);
-        assert(pos != sz);
-        queue[pos] = val;
-        pos++;
-    }
-
-    int work_queue::pop() {
-        //assert(init);
-        assert(pos > 0);
-        pos--;
-        return queue[pos];
-    }
-
-    bool work_queue::empty() {
-        //assert(init);
-        return (pos == 0);
-    }
-
-    work_queue::~work_queue() {
-        if (init) {
-            delete[] queue;
-        }
-    }
-
-    void work_queue::reset() {
-        pos = 0;
-    }
 
 // ring queue for pairs of integers
     class ring_pair {
