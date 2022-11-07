@@ -1,6 +1,8 @@
 #ifndef DEJAVU_CONFIGURATION_H
 #define DEJAVU_CONFIGURATION_H
 
+#include <functional>
+
 namespace sassy {
 // hook for automorphisms found in dejavu
 // void sassy_hook(int n, const int *perm, int nsupp, const int *support)

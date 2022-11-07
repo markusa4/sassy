@@ -4234,7 +4234,7 @@ namespace sassy {
 
 
             PRINT("(prep-red) after reduction (G, E) " << g->v_size << ", " << g->e_size);
-            g->sanity_check();
+            // g->sanity_check();
             // could do multiple calls for now obviously independent components -- could use "buffer consumer" to translate domains
         }
 
