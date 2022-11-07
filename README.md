@@ -27,7 +27,7 @@ The hook is a function that the user provides to symmetry detection software, wh
 
 The definition for `sassy_hook` is as follows:
 
-    typedef void sassy_hook(int, const int *, int, const int *);
+    typedef const std::function<void(int, const int *, int, const int *)> sassy_hook;
 
 Note that a hook has four parameters, `int n`, `const int* p`, `int nsupp`, `const int* supp`. The meaning is as follows. The integer `n` gives the size of the domain of the symmetry, or in simple terms, the number of vertices of the graph. The array `p` is an array of length `n`. The described symmetry maps `i` to `p[i]`.
 
@@ -35,13 +35,18 @@ Crucially, `nsupp` and `supp` tell us which `i`'s are interesting at all: whenev
 
 An example is below:
 
-    void hook(int n, const int *p, int nsupp, const int *supp) {
+    void my_hook(int n, const int *p, int nsupp, const int *supp) {
         for(int j = 0; j < nsupp; ++j) {
             const int i = supp[j];
             // do something with p[i]
         }
     }
 
+The function `my_hook` can be wrapped into a `std::function` object as follows:
+    
+    auto hook = sassy::sassy_hook(my_hook);
+
+`hook` ccan then be used as shown in the examples below.
 
 ## Example using bliss
 
@@ -117,7 +122,7 @@ Note that the `bliss_hook` uses the field `p.saved_hook` to call the user-define
     
 Note that the `nauty_hook` uses the static field `preprocessor::save_preprocessor` to access `p` again, which in turn accesses `p.saved_hook`. If multi-threading is used in this configuration, `preprocessor::save_preprocessor` should be changed to `thread_local`. This also holds for Traces.
     
-
+The `convert_sassy_to_nauty` method allocates memory for the graph, `lab` and `ptn` using the respective macros of nauty. Freeing up the memory again has to be handled by the user (again, the same holds for Traces).
 
 ## Example using Traces
 
@@ -157,14 +162,14 @@ Note that the `nauty_hook` uses the static field `preprocessor::save_preprocesso
     // clean up
     DYNFREE(lab, lab_sz);
     DYNFREE(ptn, ptn_sz);
-    SG_FREE(nauty_graph);
+    SG_FREE(traces_graph);
     
     // done!
 
 ## Example using saucy
 
     #include "sassy/preprocessor.h"
-    #include "sassy/tools/traces_converter.h"
+    #include "sassy/tools/saucy_converter.h"
     #include "saucy/saucy.h"
     
     ...
@@ -203,6 +208,8 @@ I want to mention that I have also seen a saucy version that uses a slightly dif
     ...
     saucy_search(s, &_saucy_graph, 0, &sassy::preprocessor::saucy_hook, &p, &stats);
     ...
+
+Again, the `convert_sassy_to_saucy` method allocates memory for the graph and `colors`, which has to be handled by the user.
 
 ## Work in progress
 Note that this project is still being actively developed. I am happy to take suggestions, bug reports, ...

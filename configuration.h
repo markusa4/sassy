@@ -10,7 +10,8 @@ namespace sassy {
 // int* support: vertices moved by the permutation
 // IMPORTANT NOTE: Try to avoid sequential reads of perm, rather use the support array to only access those parts of the
 // permutation that are non-trivial.
-    typedef void sassy_hook(int, const int *, int, const int *);
+    //typedef void sassy_hook(int, const int *, int, const int *);
+    typedef const std::function<void(int, const int *, int, const int *)> sassy_hook;
 
     struct configstruct {
         bool CONFIG_PRINT = false;
@@ -19,8 +20,7 @@ namespace sassy {
         bool CONFIG_IR_INDIVIDUALIZE_EARLY = false; // experimental feature, based on an idea by Adolfo Piperno
         bool CONFIG_PREP_DEACT_PROBE = false; // preprocessor: no probing
         bool CONFIG_PREP_DEACT_DEG01 = false; // preprocessor: no degree 0,1 processing
-        bool CONFIG_PREP_DEACT_DEG2 = false; // preprocessor: no degree 2   processing
-        bool CONFIG_PREP_ALT_SCHEDULE = false;
+        bool CONFIG_PREP_DEACT_DEG2 = false;  // preprocessor: no degree 2   processing
         bool CONFIG_IR_REFINE_EARLYOUT_LATE = false;
     };
 }
