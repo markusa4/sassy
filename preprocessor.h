@@ -4245,7 +4245,7 @@ namespace sassy {
         // bliss usage specific:
         static inline void bliss_hook(void *user_param, unsigned int n, const unsigned int *aut) {
             auto p = (preprocessor *) user_param;
-            p->pre_consumer(n, (int *) aut, -1, nullptr, p->saved_hook);
+            p->pre_consumer(n, (const int *) aut, -1, nullptr, p->saved_hook);
         }
 
         // Traces usage specific:
