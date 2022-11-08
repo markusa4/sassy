@@ -106,6 +106,18 @@ namespace sassy {
             num_edges_defined += 2;
         };
 
+        void check_double_edge() {
+            mark_set test_double_edge;
+            test_double_edge.initialize(g.v_size);
+            for(int i = 0; i < g.v_size; ++i) {
+                test_double_edge.reset();
+                for(int j = g.v[i]; j < g.v[i]+g.d[i]; ++j) {
+                    assert(!test_double_edge.get(g.e[j]));
+                    test_double_edge.set(g.e[j]);
+                }
+            }
+        }
+
         sgraph* get_sgraph() {
             if(!finalized) {
                 if (!initialized)
