@@ -118,6 +118,35 @@ namespace sassy {
             }
         }
 
+        void dump_dimacs(std::string filename) {
+            if(!finalized) {
+                if (!initialized)
+                    throw std::logic_error("uninitialized graph");
+                if (num_vertices_defined != (unsigned int) g.v_size)
+                    throw std::logic_error("did not add the number of vertices requested by constructor");
+                if (num_edges_defined != (unsigned int) g.e_size)
+                    throw std::logic_error("did not add the number of edges requested by constructor");
+                finalized = true;
+            }
+            std::ofstream dumpfile;
+            dumpfile.open (filename, std::ios::out);
+
+            dumpfile << "p edge " << g.v_size << " " << g.e_size/2 << std::endl;
+
+            for(int i = 0; i < g.v_size; ++i) {
+                dumpfile << "n " << i+1 << " " << c[i] << std::endl;
+            }
+
+            for(int i = 0; i < g.v_size; ++i) {
+                for(int j = g.v[i]; j < g.v[i]+g.d[i]; ++j) {
+                    const int neighbour = g.e[j];
+                    if(neighbour < i) {
+                        dumpfile << "e " << neighbour+1 << " " << i+1 << std::endl;
+                    }
+                }
+            }
+        }
+
         sgraph* get_sgraph() {
             if(!finalized) {
                 if (!initialized)
