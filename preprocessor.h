@@ -2657,8 +2657,6 @@ namespace sassy {
                             }
                         }
 
-                        //std::cout << "touched: " << touched_color_list.cur_pos << ", " << dont_bother_certify << std::endl;
-
                         //touched_support += _automorphism_supp.cur_pos;
                         touched_current_component = true;
                         certify = !dont_bother_certify &&
@@ -2817,8 +2815,6 @@ namespace sassy {
                                     last_failure = certify_fail.second;
                                 }
 
-                                //std::cout << certify << ", " << ind_cols.size() << std::endl;
-
                                 //reset_automorphism(_automorphism.get_array(), _automorphism_supp.cur_pos, _automorphism_supp.get_array());
                                 //_automorphism_supp.reset();
                                 touched_color.reset();
@@ -2849,8 +2845,6 @@ namespace sassy {
                                                                                 _automorphism_supp.cur_pos,
                                                                                 _automorphism_supp.get_array());
                             if (certify) {
-                                //std::cout << _automorphism_supp.cur_pos << ", " << len << ", " << g->v_size << std::endl;
-                                //std::cout << "cells: " << c1.cells << ", " << g->v_size << std::endl;
                                 assert(R1->certify_automorphism(g, _automorphism.get_array()));
                                 touched_current_component = true;
                                 touched_support += _automorphism_supp.cur_pos;
@@ -4026,7 +4020,6 @@ namespace sassy {
                     ++count;
                 }
             }
-            std::cout << "del " << count << std::endl;
         }
 
     public:
@@ -4064,8 +4057,6 @@ namespace sassy {
             refinement R_stack = refinement(config);
             R1 = &R_stack;
             R1->refine_coloring_first(g, &c, -1);
-
-            std::cout << "cells: " << c.cells << "/" << g->v_size << std::endl;
 
             if (c.cells == g->v_size) {
                 PRINT("(prep-red) graph is discrete");
