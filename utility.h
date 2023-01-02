@@ -11,8 +11,8 @@
 #include <queue>
 #include <memory>
 
-#ifndef DEJAVU_UTILITY_H
-#define DEJAVU_UTILITY_H
+#ifndef SASSY_UTILITY_H
+#define SASSY_UTILITY_H
 
 namespace sassy {
 
@@ -147,4 +147,4 @@ namespace sassy {
     };
 }
 
-#endif //DEJAVU_UTILITY_H
+#endif //SASSY_UTILITY_H

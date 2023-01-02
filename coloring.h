@@ -1,5 +1,5 @@
-#ifndef DEJAVU_COLORING_H
-#define DEJAVU_COLORING_H
+#ifndef SASSY_COLORING_H
+#define SASSY_COLORING_H
 
 
 #include <vector>
@@ -159,4 +159,4 @@ namespace sassy {
     };
 }
 
-#endif //DEJAVU_COLORING_H
+#endif //SASSY_COLORING_H
