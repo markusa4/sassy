@@ -143,7 +143,6 @@ namespace sassy {
                 --counter;
                 if (counter == 0) {
                     counter = ptn[i] + 1;
-                    last_col = i;
                     assert(ptn[i] >= 0 && ptn[i] < lab_sz);
                 } else {
                     assert(vertex_to_col[lab[i]] == last_col);

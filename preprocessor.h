@@ -363,7 +363,7 @@ namespace sassy {
 
                         found_match += test_col.ptn[i] + 1;
 
-                        const size_t debug_str_sz = recovery_strings[translate_back(test_v)].size();
+                        //const size_t debug_str_sz = recovery_strings[translate_back(test_v)].size();
 
                         for (int f = 0; f < test_col.ptn[i] + 1; ++f) {
                             const int _test_v = test_col.lab[i + f];
@@ -387,7 +387,7 @@ namespace sassy {
                                 can_n = _n2;
                             const int orig_test_v = translate_back(_test_v);
                             const int orig_n1 = translate_back(can_n);
-                            assert(debug_str_sz == recovery_strings[orig_test_v].size());
+                            //assert(debug_str_sz == recovery_strings[orig_test_v].size());
                             recovery_strings[orig_n1].push_back(orig_test_v);
                             for (size_t s = 0; s < recovery_strings[orig_test_v].size(); ++s) {
                                 recovery_strings[orig_n1].push_back(recovery_strings[orig_test_v][s]);
@@ -517,8 +517,7 @@ namespace sassy {
             coloring col;
             g->initialize_coloring(&col, colmap);
 
-            mark_set test_twin;
-            test_twin.initialize(g->v_size);
+            mark_set test_twin(g->v_size);
 
             // iterate over color classes
             for(int i = 0; i < g->v_size;) {
@@ -558,11 +557,9 @@ namespace sassy {
             if (g->v_size <= 1 || config->CONFIG_PREP_DEACT_DEG2)
                 return;
 
-            mark_set color_test;
-            color_test.initialize(g->v_size);
+            mark_set color_test(g->v_size);
 
-            mark_set color_unique;
-            color_unique.initialize(g->v_size);
+            mark_set color_unique(g->v_size);
 
             coloring col;
             g->initialize_coloring(&col, colmap);
@@ -576,38 +573,28 @@ namespace sassy {
 
             worklist_deg1.reset();
 
-            work_list endpoint_cnt;
-            endpoint_cnt.initialize(g->v_size);
+            work_list endpoint_cnt(g->v_size);
             for (int i = 0; i < g->v_size; ++i) {
                 endpoint_cnt.push_back(0);
             }
 
-            mark_set path_done;
-            path_done.initialize(g->v_size);
+            mark_set path_done(g->v_size);
 
-            work_list color_pos;
-            color_pos.initialize(g->v_size);
+            work_list color_pos(g->v_size);
 
-            work_list filter;
-            filter.initialize(g->v_size);
+            work_list filter(g->v_size);
 
-            work_list not_unique;
-            not_unique.initialize(g->v_size);
+            work_list not_unique(g->v_size);
 
-            work_list not_unique_analysis;
-            not_unique_analysis.initialize(g->v_size);
+            work_list not_unique_analysis(g->v_size);
 
-            work_list path_list;
-            path_list.initialize(g->v_size);
+            work_list path_list(g->v_size);
 
-            work_list path;
-            path.initialize(g->v_size);
+            work_list path(g->v_size);
 
-            work_list connected_paths;
-            connected_paths.initialize(g->e_size);
+            work_list connected_paths(g->e_size);
 
-            work_list connected_endpoints;
-            connected_endpoints.initialize(g->e_size);
+            work_list connected_endpoints(g->e_size);
 
             // collect and count endpoints
             int total_paths = 0;
@@ -654,8 +641,6 @@ namespace sassy {
 
             path_done.reset();
 
-            int counter = 0;
-
             // iterate over color classes
             for(int i = 0; i < g->v_size;) {
                 const int color      = i;
@@ -668,8 +653,7 @@ namespace sassy {
                 //    continue;
 
                 for(int j = 0; j < color_size; ++j) {
-                    const int other_from_color = col.lab[color + j];
-                    assert(endpoint_cnt[other_from_color] == endpoints);
+                    assert(endpoint_cnt[col.lab[color + j]] == endpoints);
                 }
 
                 if(endpoints == 0) {
@@ -727,8 +711,6 @@ namespace sassy {
                     color_test.set(neighbour_col);
                 }
 
-                const int potential = filter.cur_pos;
-
                 // filter to indices with unique colors
                 int write_pos = 0;
                 for(int k = 0; k < filter.cur_pos; ++k) {
@@ -766,9 +748,6 @@ namespace sassy {
                 int reduced_verts = 0;
                 int reduced_verts_last = 0;
 
-                int initial_reduced_verts = 0;
-                int initial_reduced_verts_last = 0;
-
                 for(int j = 0; j < color_size; ++j) {
                     const int vertex = col.lab[color + j];
 
@@ -788,9 +767,6 @@ namespace sassy {
                     }
 
                     assert(sanity_check == num_paths);
-
-                    // reduce each path
-                    initial_reduced_verts = recovery_strings[translate_back(vertex)].size();
 
                     for(int k = 0; k < num_paths; ++k) {
                         reduced_verts = 0;
@@ -850,7 +826,6 @@ namespace sassy {
                         assert(reduced_verts == reduced_verts_last);
                     }
                     reduced_verts_last = reduced_verts;
-                    initial_reduced_verts_last = initial_reduced_verts;
                 }
             }
 
@@ -866,21 +841,13 @@ namespace sassy {
                 colmap[i] = col.vertex_to_col[i];
             }
 
-            mark_set path_done;
-            path_done.initialize(g->v_size);
+            mark_set path_done(g->v_size);
 
-            work_list cycle_length;
-            cycle_length.initialize(g->v_size);
+            work_list cycle_length(g->v_size);
 
-            work_list recolor_nodes;
-            recolor_nodes.initialize(g->v_size);
+            work_list recolor_nodes(g->v_size);
 
-            work_list path;
-            path.initialize(g->v_size);
-
-            // collect and count endpoints
-            int total_paths = 0;
-            int total_deleted_vertices = 0;
+            work_list path(g->v_size);
 
             for (int i = 0; i < g->v_size; ++i) {
                 if(g->d[i] == 2) {
@@ -910,11 +877,9 @@ namespace sassy {
             if (g->v_size <= 1 || config->CONFIG_PREP_DEACT_DEG2)
                 return;
 
-            mark_set color_test;
-            color_test.initialize(g->v_size);
+            mark_set color_test(g->v_size);
 
-            mark_set color_unique;
-            color_unique.initialize(g->v_size);
+            mark_set color_unique(g->v_size);
 
             coloring col;
             g->initialize_coloring(&col, colmap);
@@ -928,52 +893,22 @@ namespace sassy {
 
             worklist_deg1.reset();
 
-            work_list endpoint_cnt;
-            endpoint_cnt.initialize(g->v_size);
+            work_list endpoint_cnt(g->v_size);
             for (int i = 0; i < g->v_size; ++i) {
                 endpoint_cnt.push_back(0);
             }
 
-            mark_set path_done;
-            path_done.initialize(g->v_size);
-
-            work_list color_pos;
-            color_pos.initialize(g->v_size);
-
-            work_list filter;
-            filter.initialize(g->v_size);
-
-            work_list not_unique;
-            not_unique.initialize(2*g->v_size);
-
-            work_list not_unique_analysis;
-            not_unique_analysis.initialize(g->v_size);
-
-            work_list path_list;
-            path_list.initialize(g->v_size);
-
-            work_list path;
-            path.initialize(g->v_size);
-
-            work_list connected_paths;
-            connected_paths.initialize(g->e_size);
-
-            work_list connected_endpoints;
-            connected_endpoints.initialize(g->e_size);
-
-            work_list neighbour_list;
-            neighbour_list.initialize(g->v_size);
-
-            work_list neighbour_to_endpoint;
-            neighbour_to_endpoint.initialize(g->v_size);
-
-            bool only_once = true;
-
-            // collect and count endpoints
-            int total_paths = 0;
-            int total_deleted_vertices = 0;
-
-            int missing_out = 0;
+            mark_set path_done(g->v_size);
+            work_list color_pos(g->v_size);
+            work_list filter(g->v_size);
+            work_list not_unique(2*g->v_size);
+            work_list not_unique_analysis(g->v_size);
+            work_list path_list(g->v_size);
+            work_list path(g->v_size);
+            work_list connected_paths(g->e_size);
+            work_list connected_endpoints(g->e_size);
+            work_list neighbour_list(g->v_size);
+            work_list neighbour_to_endpoint(g->v_size);
 
             for (int i = 0; i < g->v_size; ++i) {
                 if(g->d[i] == 2) {
@@ -995,7 +930,6 @@ namespace sassy {
                         assert(other_endpoint.first != n1);
                         assert(g->d[other_endpoint.first] != 2);
                         assert(n1 != other_endpoint.first);
-                        ++total_paths;
                     } else if(g->d[n2] != 2) {
                         const auto other_endpoint = walk_to_endpoint(g, i, n2, &path_done);
                         if(other_endpoint.first == n2) // big self-loop
@@ -1009,7 +943,6 @@ namespace sassy {
                         assert(other_endpoint.first != n2);
                         assert(g->d[other_endpoint.first] != 2);
                         assert(n2 != other_endpoint.first);
-                        ++total_paths;
                     }
                 }
             }
@@ -1070,13 +1003,11 @@ namespace sassy {
 
                 // remove trivial connections
                 for (int kk = 0; kk < not_unique.cur_pos; kk += 2) {
-                    const int neighbour = not_unique[kk];
                     const int endpoint = not_unique[kk + 1];
                     const int endpoint_col = col.vertex_to_col[endpoint];
                     not_unique_analysis[endpoint_col] = 0;
                 }
                 for (int kk = 0; kk < not_unique.cur_pos; kk += 2) {
-                    const int neighbour = not_unique[kk];
                     const int endpoint = not_unique[kk + 1];
                     const int endpoint_col = col.vertex_to_col[endpoint];
                     ++not_unique_analysis[endpoint_col];
@@ -1091,7 +1022,7 @@ namespace sassy {
                         color_test.set(endpoint_col);
 
                         if (not_unique_analysis[endpoint_col] == col.ptn[endpoint_col] + 1) {
-                            // TODO: check that path endpoints dont contain duplicates
+                            // check that path endpoints dont contain duplicates
                             bool all_unique = true;
                             color_unique.reset();
                             for (int jj = 1; jj < not_unique.cur_pos; jj += 2) {
@@ -1107,7 +1038,6 @@ namespace sassy {
                             }
 
                             if (all_unique && col.ptn[endpoint_col] + 1 == not_unique_analysis[endpoint_col] && color < endpoint_col) { // col.ptn[endpoint_col] + 1 == 2 && color_size == 2 && only_once
-                                only_once = false;
                                 // TODO: make sure it's not doubly-connected to one of the vertices (need to check this for every vertex, actually)?
                                 const int path_col = col.vertex_to_col[neighbour];
                                 const int path_col_sz = col.ptn[path_col] + 1;
@@ -1157,7 +1087,6 @@ namespace sassy {
                                             del.set(del_v);
                                             assert(!path_done.get(del_v));
                                             path_done.set(del_v);
-                                            ++total_deleted_vertices;
                                         }
 
                                         const int vert_orig = translate_back(col1_vertj);
@@ -1172,7 +1101,7 @@ namespace sassy {
                                             assert(path_v_orig >= 0);
                                             assert(path_v_orig < domain_size);
                                             recovery_strings[vert_orig].push_back(path_v_orig);
-                                            for(int rsi = 0; rsi < recovery_strings[path_v_orig].size(); ++rsi) {
+                                            for(size_t rsi = 0; rsi < recovery_strings[path_v_orig].size(); ++rsi) {
                                                 recovery_strings[vert_orig].push_back(recovery_strings[path_v_orig][rsi]);
                                             }
                                         }
@@ -1190,7 +1119,7 @@ namespace sassy {
                                             assert(path_v_orig >= 0);
                                             assert(path_v_orig < domain_size);
                                             recovery_strings[endpoint_orig].push_back(-path_v_orig);
-                                            for(int rsi = 0; rsi < recovery_strings[path_v_orig].size(); ++rsi) {
+                                            for(size_t rsi = 0; rsi < recovery_strings[path_v_orig].size(); ++rsi) {
                                                 recovery_strings[endpoint_orig].push_back(-abs(recovery_strings[path_v_orig][rsi]));
                                             }
                                         }
@@ -1203,411 +1132,6 @@ namespace sassy {
                     }
                 }
             }
-
-            //PRINT("(prep-red) deg2_trivial_connect, vertices deleted: " << total_deleted_vertices << "/" << g->v_size);
-        }
-
-        // (deprecated)
-        void red_deg2_unique_endpoint(sgraph *g, int *colmap, sassy_hook* hook) {
-            if (g->v_size <= 1 || config->CONFIG_PREP_DEACT_DEG2)
-                return;
-            mark_set color_test;
-            color_test.initialize(g->v_size);
-            add_edge_buff_act.reset();
-            for (int i = 0; i < g->v_size; ++i) {
-                add_edge_buff[i].clear();
-            }
-
-            bool redo_colmap = false;
-            int max_col = 0;
-            for (int i = 0; i < g->v_size; ++i) {
-                if (colmap[i] > max_col)
-                    max_col = colmap[i];
-            }
-
-            del.reset();
-
-            worklist_deg1.reset();
-
-            work_list endpoint_cnt;
-            endpoint_cnt.initialize(g->v_size);
-            for (int i = 0; i < g->v_size; ++i) {
-                endpoint_cnt.push_back(0);
-            }
-
-            mark_set path_done;
-            path_done.initialize(g->v_size);
-
-            work_list path;
-            path.initialize(g->v_size);
-
-            for (int i = 0; i < g->v_size; ++i) {
-                switch (g->d[i]) {
-                    case 2:
-                        worklist_deg1.push_back(i);
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            // detecting paths 1: check how many paths are connected to a node
-            // TODO: no need to go through paths here actually? could also go in reverse, from "endpoints"?
-            int num_paths1 = 0;
-            double total_path_length = 0;
-            int jj = 0;
-            while (jj < worklist_deg1.cur_pos) {
-                const int v_child = worklist_deg1[jj];
-                ++jj;
-                if (path_done.get(v_child))
-                    continue;
-                assert(g->d[v_child] == 2);
-
-                num_paths1 += 1;
-                path.reset();
-                path_done.set(v_child);
-                path.push_back(v_child);
-
-                int path_length = 1;
-
-                int v_child_next = g->e[g->v[v_child]];
-                int v_child_prev = v_child;
-                int endpoint1, endpoint2 = -1;
-                bool cycle = false;
-                while (true) {
-                    if (g->d[v_child_next] != 2) {
-                        // v_child_next is endpoint1
-                        endpoint1 = v_child_next;
-                        break;
-                    }
-                    //assert(!path_done.get(v_child_next));
-                    path.push_back(v_child_next);
-                    //path_done.set(v_child_next);
-                    ++path_length;
-                    assert(g->d[v_child_next] == 2);
-                    int v_child_next_next = g->e[g->v[v_child_next]];
-                    if (v_child_next_next == v_child_prev) {
-                        v_child_next_next = g->e[g->v[v_child_next] + 1];
-                    }
-                    if (v_child_next_next == v_child) {
-                        cycle = true;
-                        break;
-                    }
-                    assert(v_child_next_next != v_child);
-                    v_child_prev = v_child_next;
-                    v_child_next = v_child_next_next;
-                }
-
-                if (!cycle) {
-                    v_child_next = g->e[g->v[v_child] + 1];
-                    v_child_prev = v_child;
-                    while (true) {
-                        if (g->d[v_child_next] != 2) {
-                            // v_child_next is endpoint2
-                            endpoint2 = v_child_next;
-                            if (endpoint1 == endpoint2)
-                                cycle = true;
-                            break;
-                        }
-                        //assert(!path_done.get(v_child_next));
-                        path.push_back(v_child_next);
-                        //path_done.set(v_child_next);
-                        ++path_length;
-                        int v_child_next_next = g->e[g->v[v_child_next]];
-                        if (v_child_next_next == v_child_prev) {
-                            v_child_next_next = g->e[g->v[v_child_next] + 1];
-                        }
-                        assert(v_child_next_next != v_child);
-                        v_child_prev = v_child_next;
-                        v_child_next = v_child_next_next;
-                    }
-                } else {
-                    bool all_1col = true;
-                    const int first_col = colmap[path[0]];
-                    for (int f = 0; f < path.cur_pos; ++f) {
-                        all_1col = all_1col && (colmap[path[f]] == first_col);
-                    }
-
-                    if (all_1col) {
-                        assert(path.cur_pos == path_length);
-                        for (int i = 0; i < path_length; ++i) {
-                            redo_colmap = true;
-                            colmap[path[i]] = max_col + first_col + path_length * max_col;;
-                        }
-                    }
-                }
-
-                for (int i = 0; i < path.cur_pos; ++i)
-                    path_done.set(path[i]);
-
-                if (!cycle) {
-                    assert(endpoint1 != endpoint2);
-                    assert(endpoint1 >= 0);
-                    assert(endpoint2 >= 0);
-                    endpoint_cnt[endpoint1] += 1;
-                    endpoint_cnt[endpoint2] += 1;
-                }
-
-                total_path_length += path_length;
-            }
-
-
-            int cnt_unique    = 0;
-            int cnt_all       = 0;
-            int cnt_connected = 0;
-            int cnt_same_endpoint = 0;
-
-            // detecting paths 2: mark nodes for deletion and add edges to edge buffer
-            path_done.reset();
-            int num_paths2 = 0;
-            int unique_smallest_endpoint_paths = 0;
-            jj = 0;
-            while (jj < worklist_deg1.cur_pos) {
-                const int v_child = worklist_deg1[jj];
-                ++jj;
-                if (path_done.get(v_child))
-                    continue;
-                if (g->d[v_child] != 2)
-                    continue;
-
-                num_paths2 += 1;
-                path_done.set(v_child);
-
-                path.reset();
-                path.push_back(v_child); // probably need 2*n and set v_child into middle, then expand to left/right
-
-                int v_child_next = g->e[g->v[v_child]];
-                int v_child_prev = v_child;
-                int endpoint1, endpoint2;
-                bool cycle = false;
-                while (true) {
-                    if (g->d[v_child_next] != 2) {
-                        // v_child_next is endpoint1
-                        endpoint1 = v_child_next;
-                        break;
-                    }
-                    //path_done.set(v_child_next);
-                    path.push_back(v_child_next);
-                    int v_child_next_next = g->e[g->v[v_child_next]];
-                    if (v_child_next_next == v_child_prev) {
-                        v_child_next_next = g->e[g->v[v_child_next] + 1];
-                    }
-                    if (v_child_next_next == v_child) {
-                        cycle = true;
-                        break;
-                    }
-                    assert(v_child_next_next != v_child);
-                    v_child_prev = v_child_next;
-                    v_child_next = v_child_next_next;
-                }
-
-                if (!cycle) {
-                    v_child_next = g->e[g->v[v_child] + 1];
-                    v_child_prev = v_child;
-                    while (true) {
-                        if (g->d[v_child_next] != 2) {
-                            // v_child_next is endpoint2
-                            endpoint2 = v_child_next;
-                            break;
-                        }
-                        path.push_back(v_child_next);
-                        int v_child_next_next = g->e[g->v[v_child_next]];
-                        if (v_child_next_next == v_child_prev) {
-                            v_child_next_next = g->e[g->v[v_child_next] + 1];
-                        }
-                        assert(v_child_next_next != v_child);
-                        v_child_prev = v_child_next;
-                        v_child_next = v_child_next_next;
-                    }
-                }
-
-                for (int i = 0; i < path.cur_pos; ++i)
-                    path_done.set(path[i]);
-
-                if (cycle) {
-                    continue;
-                }
-
-                // unique endpoint reduction
-                if (colmap[endpoint1] != colmap[endpoint2]) {
-                    if ((endpoint_cnt[endpoint1] == 1) || endpoint_cnt[endpoint2] == 1) {
-                        bool col_cycle = false;
-                        if (g->d[endpoint1] < g->d[endpoint2]) {
-                            const int col_endpoint2 = colmap[endpoint2];
-                            for (int f = 0; f < g->d[endpoint1]; ++f) {
-                                const int col_other = colmap[g->e[g->v[endpoint1] + f]];
-                                if (col_other == col_endpoint2) {
-                                    col_cycle = true;
-                                    break;
-                                }
-                            }
-                        } else {
-                            const int col_endpoint1 = colmap[endpoint1];
-                            for (int f = 0; f < g->d[endpoint2]; ++f) {
-                                const int col_other = colmap[g->e[g->v[endpoint2] + f]];
-                                if (col_other == col_endpoint1) {
-                                    col_cycle = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (col_cycle) {
-                            //PRINT("col neighbours!");
-                            continue;
-                        }
-
-                        add_edge_buff[endpoint1].reserve(endpoint_cnt[endpoint1]);
-                        add_edge_buff[endpoint2].reserve(endpoint_cnt[endpoint2]);
-
-                        add_edge_buff[endpoint2].push_back(endpoint1);
-                        add_edge_buff_act.set(endpoint2);
-                        add_edge_buff[endpoint1].push_back(endpoint2);
-                        add_edge_buff_act.set(endpoint1);
-
-                        assert(g->d[endpoint1] != 2);
-                        assert(g->d[endpoint2] != 2);
-                        unique_smallest_endpoint_paths += 1;
-                        //assert(path_length == path.cur_pos);
-                        int deleted = 0;
-                        for (int i = 0; i < path.cur_pos; ++i) {
-                            ++deleted;
-                            const int del_v = path[i];
-                            assert(g->d[del_v] == 2);
-                            //assert(!del2.get(del_v));
-                            del.set(del_v);
-                        }
-
-                        int unique_endpoint; // pick the unique endpoint to attach canonical information to
-                        if ((endpoint_cnt[endpoint1] == 1) && (endpoint_cnt[endpoint2] != 1)) {
-                            unique_endpoint = endpoint1;
-                        } else if ((endpoint_cnt[endpoint1] != 1) && (endpoint_cnt[endpoint2] == 1)) {
-                            unique_endpoint = endpoint2;
-                        } else if (colmap[endpoint1] < colmap[endpoint2]) {
-                            unique_endpoint = endpoint1;
-                        } else {
-                            assert(colmap[endpoint1] > colmap[endpoint2]);
-                            unique_endpoint = endpoint2;
-                        }
-
-                        // translate_back
-                        const int unique_endpoint_orig = translate_back(unique_endpoint);
-                        // attach all represented vertices of path to unique_endpoint_orig in canonical fashion
-                        path.sort_after_map(colmap);
-                        recovery_strings[unique_endpoint_orig].reserve(
-                                recovery_strings[unique_endpoint_orig].size() + path.cur_pos);
-                        for (int i = 0; i < path.cur_pos; ++i) {
-                            const int path_v_orig = translate_back(path[i]);
-                            recovery_strings[unique_endpoint_orig].push_back(path_v_orig);
-                            recovery_strings[unique_endpoint_orig].insert(
-                                    recovery_strings[unique_endpoint_orig].end(),
-                                    recovery_strings[path_v_orig].begin(),
-                                    recovery_strings[path_v_orig].end());
-                        }
-                        path.reset();
-                    } else {
-                        // endpoint that is only connected to uniquely colored paths is also unique endpoint
-                        // can reduce and canonize these by sorting according to color e.g.
-                        // might not be worth, though
-                        ++cnt_all;
-
-                        int unique_endpoint; // pick the unique endpoint to attach canonical information to
-                        if ((endpoint_cnt[endpoint1] < endpoint_cnt[endpoint2])) {
-                            unique_endpoint = endpoint1;
-                        } else if ((endpoint_cnt[endpoint1] > endpoint_cnt[endpoint2])) {
-                            unique_endpoint = endpoint2;
-                        } else if (colmap[endpoint1] < colmap[endpoint2]) {
-                            unique_endpoint = endpoint1;
-                        } else {
-                            assert(colmap[endpoint1] > colmap[endpoint2]);
-                            unique_endpoint = endpoint2;
-                        }
-
-                        color_test.reset();
-                        bool unique_color = true;
-                        const int v = unique_endpoint;
-                        const int d = g->d[v];
-                        const int ept = g->v[v];
-                        for (int j = ept; j < ept + d; ++j) {
-                            const int nv = g->e[j];
-                            const int nv_col = colmap[nv];
-                            const int nd = g->d[j];
-
-                            if (nv == endpoint2) {
-                                ++cnt_connected;
-                            }
-
-                            if(nd != 2)
-                                continue;
-
-                            if (!color_test.get(nv_col)) {
-                                // TODO: collect path color and node in list
-                                color_test.set(nv_col);
-                            } else {
-                                unique_color = false;
-                            }
-                        }
-                        if (unique_color) {
-                            ++cnt_unique;
-                        } else {
-                            continue;
-                        }
-
-                        bool col_cycle = false;
-                        if (g->d[endpoint1] < g->d[endpoint2]) {
-                            const int col_endpoint2 = colmap[endpoint2];
-                            for (int f = 0; f < g->d[endpoint1]; ++f) {
-                                const int col_other = colmap[g->e[g->v[endpoint1] + f]];
-                                if (col_other == col_endpoint2) {
-                                    col_cycle = true;
-                                    break;
-                                }
-                            }
-                        } else {
-                            const int col_endpoint1 = colmap[endpoint1];
-                            for (int f = 0; f < g->d[endpoint2]; ++f) {
-                                const int col_other = colmap[g->e[g->v[endpoint2] + f]];
-                                if (col_other == col_endpoint1) {
-                                    col_cycle = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (col_cycle) {
-                            continue;
-                        }
-
-                        // TODO: how to manage this? paths can deactivate each other, etc., not isomorphism-invariant? should go color-wise, really...
-
-                        /*
-                        add_edge_buff[endpoint1].reserve(endpoint_cnt[endpoint1]);
-                        add_edge_buff[endpoint2].reserve(endpoint_cnt[endpoint2]);
-
-                        add_edge_buff[endpoint2].push_back(endpoint1);
-                        add_edge_buff_act.set(endpoint2);
-                        add_edge_buff[endpoint1].push_back(endpoint2);
-                        add_edge_buff_act.set(endpoint1);
-                        */
-
-                        // TODO: need to go over all paths connected to unique_endpoint in canonical order
-
-
-
-                    }
-                }
-            }
-
-            if (redo_colmap) {
-                coloring d;
-                g->initialize_coloring(&d, colmap);
-                for (int i = 0; i < g->v_size; ++i) {
-                    colmap[i] = d.vertex_to_col[i];
-                }
-            }
-
-            worklist_deg1.reset();
-
-            assert(num_paths1 == num_paths2);
         }
 
         void write_canonical_recovery_string_to_automorphism(const int from, const int to) {
@@ -1631,8 +1155,7 @@ namespace sassy {
             worklist_deg0.reset();
             worklist_deg1.reset();
 
-            mark_set is_parent;
-            is_parent.initialize(g->v_size);
+            mark_set is_parent(g->v_size);
 
             g_old_v.clear();
             g_old_v.reserve(g->v_size);
@@ -1640,26 +1163,20 @@ namespace sassy {
                 g_old_v.push_back(g->d[i]);
             }
 
-            work_list pair_match;
-            pair_match.initialize(g->v_size);
+            work_list pair_match(g->v_size);
 
-            work_list parentlist;
-            parentlist.initialize(g->v_size);
+            work_list parentlist(g->v_size);
 
-            work_list childcount;
-            childcount.initialize(g->v_size);
+            work_list childcount(g->v_size);
             for (int i = 0; i < g->v_size; ++i)
                 childcount.push_back(0);
 
-            work_list childcount_prev;
-            childcount_prev.initialize(g->v_size);
+            work_list childcount_prev(g->v_size);
             for (int i = 0; i < g->v_size; ++i)
                 childcount_prev.push_back(0);
 
-            work_list_t<std::pair<int, int>> stack1;
-            work_list map;
-            stack1.initialize(g->v_size);
-            map.initialize(g->v_size);
+            work_list_t<std::pair<int, int>> stack1(g->v_size);
+            work_list map(g->v_size);
 
             assert(_automorphism_supp.cur_pos == 0);
 
@@ -2179,10 +1696,8 @@ namespace sassy {
             worklist_deg0.reset();
             worklist_deg1.reset();
 
-            mark_set connected_col;
-            mark_set is_not_matched;
-            connected_col.initialize(g->v_size);
-            is_not_matched.initialize(g->v_size);
+            mark_set connected_col(g->v_size);
+            mark_set is_not_matched(g->v_size);
 
             // int v_has_matching_color = 0;
 
@@ -2849,10 +2364,8 @@ namespace sassy {
             strategy m;
             m.cell_selector_type = sel_type;
 
-            mark_set  touched_color;
-            work_list touched_color_list;
-            touched_color.initialize(g->v_size);
-            touched_color_list.initialize(g->v_size);
+            mark_set  touched_color(g->v_size);
+            work_list touched_color_list(g->v_size);
 
             invariant I1, I2;
             I1.only_acc = true;
@@ -3176,8 +2689,8 @@ namespace sassy {
                     automorphism[orig_v_from] = orig_v_to;
                     automorphism_supp.push_back(orig_v_from);
 
-                    assert(orig_v_to   < recovery_strings.size());
-                    assert(orig_v_from < recovery_strings.size());
+                    assert(orig_v_to   < (int)recovery_strings.size());
+                    assert(orig_v_from < (int)recovery_strings.size());
                     assert(recovery_strings[orig_v_to].size() ==
                            recovery_strings[orig_v_from].size());
 
@@ -5069,8 +4582,7 @@ namespace sassy {
 
             g->initialize_coloring(&c, colmap);
 
-            work_list old_arr;
-            old_arr.initialize(g->v_size);
+            work_list old_arr(g->v_size);
 
             std::memcpy(old_arr.get_array(), g->v, g->v_size*sizeof(int));
             for(int j = 0; j < g->v_size; ++j) {
@@ -5099,7 +4611,7 @@ namespace sassy {
                 g->e[j] = old_arr[g->e[j]];
             }
 
-            assert(backward_translation_layers[backward_translation_layers.size() - 1].size() == g->v_size);
+            assert((int)backward_translation_layers[backward_translation_layers.size() - 1].size() == g->v_size);
             for(int i = 0; i < g->v_size; ++i) {
                 old_arr[i] = backward_translation_layers[backward_translation_layers.size() - 1][i];
             }

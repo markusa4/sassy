@@ -70,6 +70,11 @@ namespace sassy {
     template<class T>
     class work_list_t {
     public:
+        work_list_t() {};
+        work_list_t(int size) {
+            initialize(size);
+        };
+
         void initialize(int size) {
             if(init)
                 delete[] arr;
