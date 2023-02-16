@@ -10,7 +10,6 @@
 #include "selector.h"
 #include <vector>
 #include <iomanip>
-#include <sys/resource.h>
 #include <stdlib.h>
 #include <ctime>
 
