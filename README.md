@@ -5,6 +5,26 @@ Some technicalities apply, though: a hook for symmetries must be given to sassy 
 
 The preprocessor comes in the form of a C++ header-only library and uses some features of C++17. To achieve good performance the library should be compiled with an adequate optimization level enabled (we use `-O3` for benchmarks), as well as assertions disabled (i.e., by using the flag `NDEBUG`).
 
+## The paper
+The inner workings of sassy are explained in our [paper](https://arxiv.org/abs/2302.06351). If you use sassy in your research work, please cite the paper:
+
+    @article{DBLP:journals/corr/abs-2302-06351,
+      author    = {Markus Anders and
+                   Pascal Schweitzer and
+                   Julian Stie{\ss}},
+      title     = {Engineering a Preprocessor for Symmetry Detection},
+      journal   = {CoRR},
+      volume    = {abs/2302.06351},
+      year      = {2023},
+      url       = {https://doi.org/10.48550/arXiv.2302.06351},
+      doi       = {10.48550/arXiv.2302.06351},
+      eprinttype = {arXiv},
+      eprint    = {2302.06351},
+      timestamp = {Mon, 20 Feb 2023 14:27:28 +0100},
+      biburl    = {https://dblp.org/rec/journals/corr/abs-2302-06351.bib},
+      bibsource = {dblp computer science bibliography, https://dblp.org}
+    }
+
 ## The graphs
 We provide an interface for the construction of vertex-colored graphs in the class `static_graph`. The graph must first be initialized (either using the respective constructor or using `initialize_graph`). For the initialization, the final number of vertices and edges must be given. The number of vertices and edges can not be changed. Then, using `add_vertex` and `add_edge`, the precise number of defined vertices and edges must be added. The `add_vertex(color, deg)` function requests a color and a degree. Both can not be changed later (unless the internal graph is changed manually). Note that the function always returns the numbers `0..n-1`, in order, as the indices of the vertices. The `add_edge(v1, v2)` function adds an undirected edge from v1 to v2. It is always required that v1 < v2 holds, to prevent the accidental addition of hyper-edges. An example creating a path of length 3 is given below.
 
