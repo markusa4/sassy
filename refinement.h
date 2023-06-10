@@ -2046,8 +2046,8 @@ namespace sassy {
                 for (int i = 0; i < color_vertices_considered.get(_col) + 1; ++i) {
                     const int v = scratch[_col + i];
                     if (neighbours.get(v) == -1) {
-                        v_new_color = _col;
                         assert(false);
+                        v_new_color = _col;
                     } else {
                         assert((neighbours.get(v) + 1) > 0);
                         v_new_color = _col + _col_sz - neighbour_sizes.get(neighbours.get(v) + 1);
@@ -2113,7 +2113,7 @@ namespace sassy {
 
 // ring queue for pairs of integers
     class ring_pair {
-        std::pair<int, int> *arr;
+        std::pair<int, int> *arr = 0;
         bool init = false;
         int arr_sz = -1;
         int front_pos = -1;
