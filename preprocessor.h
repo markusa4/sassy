@@ -3534,6 +3534,8 @@ namespace sassy {
 
                     ++component;
 
+                    if(component >= (int) quotient_component_worklist_boundary.size()) break;
+
                     quotient_component_end_pos = quotient_component_worklist_boundary[component].first;
                     quotient_component_end_pos_v = quotient_component_worklist_boundary[component].second;
 
@@ -4411,6 +4413,8 @@ namespace sassy {
                     quotient_component_start_pos_v = quotient_component_worklist_boundary[component].second;
 
                     ++component;
+
+                    if(component >= (int) quotient_component_worklist_boundary.size()) break;
 
                     quotient_component_end_pos = quotient_component_worklist_boundary[component].first;
                     quotient_component_end_pos_v = quotient_component_worklist_boundary[component].second;
