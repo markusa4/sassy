@@ -584,10 +584,6 @@ namespace sassy {
 
             work_list filter(g->v_size);
 
-            work_list not_unique(g->v_size);
-
-            work_list not_unique_analysis(g->v_size);
-
             work_list path_list(g->v_size);
 
             work_list path(g->v_size);
@@ -674,16 +670,12 @@ namespace sassy {
                 }
 
                 filter.reset();
-                not_unique.reset();
                 // filter to indices with unique colors
                 for(int j = 0; j < endpoints; ++j) {
                     const int neighbour     = connected_paths[g->v[test_vertex] + j];
                     const int neighbour_col = col.vertex_to_col[neighbour];
                     if(!color_unique.get(neighbour_col)) { // if unique
                         filter.push_back(j); // add index to filter
-                    } else {
-                        not_unique.push_back(neighbour);
-                        not_unique.push_back(connected_endpoints[g->v[test_vertex] + j]);
                     }
                 }
 
