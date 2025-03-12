@@ -15,7 +15,14 @@
 
 namespace sassy {
     class preprocessor;
-    thread_local preprocessor* save_preprocessor;
+
+    /** 
+     * Used to make preprocessor object available from nauty/saucy/Traces hook. 
+     */
+    inline preprocessor*& save_preprocessor() {
+        static preprocessor* p = nullptr;
+        return p;
+    } 
 
     enum preop {
         deg01, deg2ue, deg2ma, qcedgeflip, probeqc, probe2qc, probeflat, redloop
@@ -31,7 +38,6 @@ namespace sassy {
 
         configstruct* config = nullptr;
     private:
-        //inline static preprocessor* save_preprocessor;
         sassy_hook*                 saved_hook;
         configstruct                config_default;
 
@@ -4677,13 +4683,13 @@ namespace sassy {
                     recovery_strings.emplace_back(std::vector<int>());
                 }
                 saved_hook = hook;
-                save_preprocessor = this;
+                save_preprocessor() = this;
                 return;
             }
 
             domain_size = g->v_size;
             saved_hook = hook;
-            save_preprocessor = this;
+            save_preprocessor() = this;
             if(g->v_size == 0)
                 return;
             g->dense = !(g->e_size < g->v_size || g->e_size / g->v_size < g->v_size / (g->e_size / g->v_size));
@@ -4925,7 +4931,7 @@ namespace sassy {
 #if defined(BLISS_VERSION_MAJOR) && defined(BLISS_VERSION_MINOR)
 #if ( BLISS_VERSION_MAJOR >= 1 || BLISS_VERSION_MINOR >= 76 )
         void bliss_hook(unsigned int n, const unsigned int *aut) {
-          auto p = save_preprocessor;
+          auto p = save_preprocessor();
           p->pre_hook_buffered(n, (const int *) aut, -1, nullptr, p->saved_hook);
        }
 #else
@@ -4942,22 +4948,22 @@ namespace sassy {
 #endif
         // Traces usage specific:
         static inline void traces_hook(int c, int* aut, int n) {
-            auto p = save_preprocessor;
+            auto p = save_preprocessor();
             p->pre_hook_buffered(n, (const int *) aut, -1, nullptr, p->saved_hook);
         }
 
         void traces_save_my_preprocessor() {
-            save_preprocessor = this;
+            save_preprocessor() = this;
         }
 
         // nauty usage specific:
         static inline void nauty_hook(int c, int* aut, int* orb, int norb, int stabvert, int n) {
-            auto p = save_preprocessor;
+            auto p = save_preprocessor();
             p->pre_hook_buffered(n, (const int *) aut, -1, nullptr, p->saved_hook);
         }
 
         void nauty_save_my_preprocessor() {
-            save_preprocessor = this;
+            save_preprocessor() = this;
         }
 
         // saucy usage specific:
@@ -4969,7 +4975,7 @@ namespace sassy {
 
         // dejavu usage specific: (TODO!)
         static inline void dejavu_hook(int n, const int* aut, int nsupp, const int* supp) {
-            auto p = save_preprocessor;
+            auto p = save_preprocessor();
             p->pre_hook_buffered(n, (const int *) aut, nsupp, supp, p->saved_hook);
             return;
         }
